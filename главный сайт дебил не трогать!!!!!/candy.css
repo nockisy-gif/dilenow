@@ -1,0 +1,53 @@
+/* 🍬 КОНФЕТЫ, ОБМЕННИК И ВРЕМЕННОЕ СОБЫТИЕ (Хэллоуин до 7 ноября) */
+
+/* баланс конфет в шапке рядом с монетами */
+.coin-chip .candy-bal { display: inline-flex; align-items: center; gap: 4px; margin-left: 6px; padding-left: 10px; border-left: 1px solid rgba(255, 255, 255, .25); font-weight: 900; }
+.coin-chip .candy-bal i { font-style: normal; font-size: 16px; filter: drop-shadow(0 0 6px rgba(255, 90, 150, .8)); }
+
+/* баланс конфет в магазине */
+.shop-candy { display: inline-flex; align-items: center; gap: 10px; margin-left: 10px; padding: 10px 18px; border-radius: 16px; cursor: pointer; border: 1px solid rgba(255, 90, 150, .6);
+    background: linear-gradient(135deg, rgba(255, 61, 139, .18), rgba(122, 63, 224, .18)); transition: .2s; }
+.shop-candy:hover { transform: translateY(-1px); box-shadow: 0 0 22px rgba(255, 90, 150, .55); }
+.shop-candy > i { font-style: normal; font-size: 26px; }
+.shop-candy span { font: 900 20px 'Orbitron', sans-serif; }
+.shop-candy small { font: 700 12px 'Inter', sans-serif; display: block; margin-top: -2px; opacity: .75; }
+
+/* две кнопки покупки */
+.buy-row { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; }
+.buy-row .btn { flex: 1 1 auto; }
+.btn-candy { background: linear-gradient(135deg, #ff3d8b, #7a3fe0) !important; border-color: transparent !important; color: #fff !important; }
+.btn-candy .price i { font-style: normal; margin-right: 4px; }
+.btn-event { opacity: .8; cursor: not-allowed; letter-spacing: .5px; }
+.shop-hint.event-over { border-color: rgba(255, 200, 87, .6); background: rgba(255, 200, 87, .1); }
+
+/* обменник */
+.xchg-ov { position: fixed; inset: 0; z-index: 100020; display: none; align-items: center; justify-content: center; padding: 16px; background: rgba(6, 2, 10, .72); backdrop-filter: blur(6px); }
+.xchg-ov.on { display: flex; animation: xFade .25s ease both; }
+.xchg-card { position: relative; width: min(440px, 100%); padding: 24px 22px 20px; border-radius: 22px; color: #fff;
+    background: linear-gradient(160deg, rgba(40, 14, 28, .98), rgba(14, 6, 22, .98)); border: 1px solid rgba(255, 138, 31, .6);
+    box-shadow: 0 0 50px rgba(255, 110, 20, .35), 0 0 90px rgba(122, 31, 214, .3); overflow: hidden; }
+.xchg-card::before { content: ''; position: absolute; inset: -40% -20% auto; height: 140px; background: radial-gradient(ellipse at 50% 0, rgba(255, 138, 31, .35), transparent 70%); pointer-events: none; }
+.xchg-card h3 { margin: 0 0 4px; font: 900 22px 'Orbitron', sans-serif; text-shadow: 0 0 14px rgba(255, 110, 20, .6); }
+.xchg-card h3 span { display: inline-block; margin-left: 8px; padding: 2px 8px; border-radius: 8px; background: rgba(255, 138, 31, .2); color: #ffb347; font: 800 10px 'Inter', sans-serif; letter-spacing: 1px; text-transform: uppercase; vertical-align: middle; }
+.xchg-sub { margin: 0 0 14px; font: 600 13px 'Inter', sans-serif; color: #c9bfe0; }
+.xchg-x { position: absolute; top: 12px; right: 12px; width: 32px; height: 32px; border-radius: 10px; border: 1px solid rgba(255, 255, 255, .2); background: rgba(255, 255, 255, .06); color: #fff; cursor: pointer; }
+.xchg-bal { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 14px; }
+.xchg-bal > div:not(.xchg-arrow) { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 12px 8px; border-radius: 14px; background: rgba(255, 255, 255, .05); border: 1px solid rgba(255, 255, 255, .12); }
+.xchg-bal b { font: 900 22px 'Orbitron', sans-serif; }
+.xchg-bal small { font: 700 11px 'Inter', sans-serif; opacity: .7; }
+.xchg-bal i { font-style: normal; font-size: 24px; }
+.xchg-arrow { font-size: 22px; color: #ffb347; animation: xSpin 3s ease-in-out infinite; }
+.xchg-tabs { display: flex; gap: 6px; margin-bottom: 12px; }
+.xchg-tabs button { flex: 1; padding: 10px 6px; border-radius: 12px; border: 1px solid rgba(255, 255, 255, .18); background: transparent; color: #c9bfe0; font: 800 12px 'Inter', sans-serif; cursor: pointer; }
+.xchg-tabs button.on { color: #fff; border-color: transparent; background: linear-gradient(135deg, #7a3fe0, #ff8a1f); box-shadow: 0 0 18px rgba(255, 138, 31, .5); }
+.xchg-row { display: flex; gap: 6px; margin-bottom: 10px; }
+.xchg-row button { min-width: 44px; padding: 0 12px; border-radius: 12px; border: 1px solid rgba(255, 138, 31, .5); background: rgba(255, 138, 31, .12); color: #ffb347; font: 900 16px 'Inter', sans-serif; cursor: pointer; }
+.xchg-row input { flex: 1; min-width: 0; text-align: center; padding: 12px; border-radius: 12px; border: 1px solid rgba(255, 255, 255, .25); background: rgba(0, 0, 0, .35); color: #fff; font: 900 20px 'Orbitron', sans-serif; }
+.xchg-calc { min-height: 44px; display: flex; align-items: center; justify-content: center; gap: 6px; margin-bottom: 14px; padding: 10px; border-radius: 12px; background: rgba(255, 138, 31, .08); border: 1px dashed rgba(255, 138, 31, .45); font: 700 14px 'Inter', sans-serif; flex-wrap: wrap; text-align: center; }
+.xchg-calc .coin { width: 1.2em; height: 1.2em; }
+.xchg-btns { display: flex; gap: 8px; }
+.xchg-btns .btn { flex: 1; }
+.xchg-btns .btn:disabled { opacity: .5; cursor: not-allowed; }
+@keyframes xFade { from { opacity: 0; transform: scale(.96); } to { opacity: 1; transform: none; } }
+@keyframes xSpin { 0%, 100% { transform: rotate(0); } 50% { transform: rotate(180deg); } }
+@media (max-width: 520px) { .shop-candy { margin-left: 0; margin-top: 8px; width: 100%; justify-content: center; } }

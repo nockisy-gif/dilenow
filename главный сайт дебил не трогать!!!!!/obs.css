@@ -1,0 +1,56 @@
+/* Оверлеи для OBS: прозрачный фон, крупный читаемый текст */
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@800;900&family=Inter:wght@700;800&display=swap');
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+    background: transparent;
+    font-family: 'Inter', sans-serif;
+    padding: 12px;
+    color: #fff;
+}
+
+/* ---------- Счёт ---------- */
+.score-box {
+    display: inline-flex;
+    align-items: center;
+    gap: 22px;
+    padding: 14px 30px;
+    border-radius: 18px;
+    background: rgba(10, 7, 22, 0.88);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 0 40px rgba(139, 92, 246, 0.55), inset 0 0 20px rgba(34, 227, 255, 0.12);
+}
+.team {
+    width: 260px; min-width: 260px; flex: 0 0 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    font: 900 22px 'Orbitron', sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+.team-left  { text-align: right; color: #22e3ff; text-shadow: 0 0 14px rgba(34, 227, 255, 0.7); }
+.team-right { text-align: left; color: #ff3d8b; text-shadow: 0 0 14px rgba(255, 61, 139, 0.7); }
+.score-val {
+    font: 900 34px 'Orbitron', sans-serif;
+    padding: 6px 22px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #8b5cf6, #ff3d8b);
+    box-shadow: 0 0 24px rgba(255, 61, 139, 0.55);
+}
+
+/* ---------- Состав ---------- */
+.players-box {
+    display: inline-block;
+    padding: 12px 22px 12px 18px;
+    border-radius: 0 14px 14px 0;
+    border-left: 4px solid #22e3ff;
+    background: rgba(10, 7, 22, 0.88);
+    box-shadow: 0 0 30px rgba(34, 227, 255, 0.3);
+}
+.players-title {
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: #8f94b8;
+    margin-bottom: 4px;
+}
+.players-list { font: 800 17px 'Inter', sans-serif; color: #2ee59d; }

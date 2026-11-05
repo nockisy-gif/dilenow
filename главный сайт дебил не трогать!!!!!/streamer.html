@@ -1,0 +1,1948 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#070510">
+<title>Кабинет стримера — DILENOW SNS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800;900&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="cos.css">
+<link rel="stylesheet" href="obs-halloween.css">
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+<link rel="stylesheet" href="fx.css">
+
+<style>
+/* ==========================================================
+   DILENOW SNS — кабинет стримера + оверлеи OBS (один файл)
+   Кабинет:  streamer.html
+   Оверлеи:  ?obs=vs | ?obs=score | ?obs=stats[&side=left|right]  + &user=ИМЯ
+   ========================================================== */
+:root {
+    --bg:#070510; --bg-soft:#0e0a1d;
+    --surface:rgba(255,255,255,.04); --surface-2:rgba(255,255,255,.07);
+    --border:rgba(255,255,255,.10); --border-2:rgba(255,255,255,.18);
+    --text:#eef0ff; --muted:#8f94b8;
+    --cyan:#22e3ff; --violet:#8b5cf6; --pink:#ff3d8b;
+    --green:#2ee59d; --red:#ff4d6d; --gold:#ffc857;
+    --grad:linear-gradient(135deg,#8b5cf6,#22e3ff);
+    --grad-hot:linear-gradient(135deg,#ff3d8b,#8b5cf6);
+    --radius:18px; --radius-sm:12px;
+}
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+body { font-family:'Inter',system-ui,sans-serif; background:var(--bg); color:var(--text); font-size:15px; line-height:1.5; min-height:100vh; overflow-x:hidden; }
+body::before { content:''; position:fixed; inset:0; z-index:-1;
+    background:radial-gradient(600px 400px at 8% 8%,rgba(139,92,246,.28),transparent 70%),
+               radial-gradient(700px 500px at 95% 15%,rgba(34,227,255,.16),transparent 70%),
+               radial-gradient(600px 500px at 50% 105%,rgba(255,61,139,.14),transparent 70%); }
+
+/* ---------- режим оверлея (OBS) ---------- */
+body.overlay { background:transparent; overflow:hidden; }
+body.overlay::before { display:none; }
+body.overlay #cabinet { display:none; }
+#overlay { display:none; padding:12px; width:max-content; transition:opacity .4s ease, transform .4s ease; }
+body.overlay #overlay { display:block; }
+#overlay[data-visible="0"] { opacity:0; transform:translateY(10px); }
+
+/* ---------- карточки VS (фиксированные размеры: ник/гильдия не растягивают плашку) ---------- */
+.vs { display:flex; align-items:center; gap:var(--g-vs,18px); }
+.pc { display:flex; align-items:center; gap:16px; width:460px; min-width:460px; max-width:460px; flex:0 0 460px; height:150px; padding:14px 20px 14px 14px; border-radius:22px; position:relative; overflow:visible;
+      background:linear-gradient(135deg,rgba(14,10,29,.96),rgba(26,17,56,.96)); border:1px solid rgba(255,255,255,.14); backdrop-filter:blur(8px); }
+.pc::after { content:''; position:absolute; inset:0; border-radius:22px; pointer-events:none; background:linear-gradient(115deg,rgba(255,255,255,.07),transparent 38%); }
+.pc.l { border-left:5px solid var(--cyan); box-shadow:0 0 38px rgba(34,227,255,.30); animation:inL .6s cubic-bezier(.2,.9,.3,1) both; }
+.pc.r { flex-direction:row-reverse; text-align:right; padding:14px 14px 14px 20px; border-right:5px solid var(--pink); box-shadow:0 0 38px rgba(255,61,139,.30); animation:inR .6s cubic-bezier(.2,.9,.3,1) both; }
+.pc.empty { opacity:.55; }
+.pc .av-wrap { margin:0; flex:0 0 auto; }
+.av { width:92px; height:92px; border-radius:18px; object-fit:cover; flex-shrink:0; border:2px solid rgba(255,255,255,.18); background:var(--bg-soft); }
+.av.ph { display:grid; place-items:center; font:900 38px 'Orbitron',sans-serif; background:var(--grad); color:#fff; }
+.pc.r .av.ph { background:var(--grad-hot); }
+.pi { min-width:0; flex:1 1 0; width:0; }
+.pn { font:900 24px 'Orbitron',sans-serif; text-transform:uppercase; letter-spacing:.5px; line-height:1.15; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.pg { color:var(--muted); font-weight:700; font-size:14px; margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.pst { display:grid; grid-template-columns:repeat(4,1fr); gap:6px; margin-top:10px; }
+.ps { padding:5px 4px 4px; border-radius:10px; text-align:center; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.10); min-width:0; }
+.ps b { display:block; font:900 16px 'Orbitron',sans-serif; line-height:1.1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.ps span { display:block; margin-top:2px; font:800 9px 'Inter',sans-serif; letter-spacing:1.4px; color:var(--muted); }
+.ps.rk b { color:var(--gold); } .ps.e b { color:var(--cyan); }
+.pc.r .ps.e b { color:var(--pink); }
+.ps.new b { color:var(--green); font-size:13px; }
+.vsb { flex:0 0 auto; font:900 28px 'Orbitron',sans-serif; padding:14px 18px; border-radius:16px; background:var(--grad-hot); color:#fff; box-shadow:0 0 30px rgba(255,61,139,.55); animation:vsPulse 2s ease-in-out infinite; }
+@keyframes inL { from { opacity:0; transform:translateX(-50px); } to { opacity:1; transform:none; } }
+@keyframes inR { from { opacity:0; transform:translateX(50px); }  to { opacity:1; transform:none; } }
+@keyframes vsPulse { 0%,100% { transform:scale(1); } 50% { transform:scale(1.08); } }
+
+/* ---------- табло счёта (все блоки фиксированной ширины) ---------- */
+.scw { display:inline-block; text-align:center; }
+.gs { position:relative; display:flex; align-items:stretch; gap:var(--g-score,24px); animation:inUp .5s ease both; filter:drop-shadow(0 8px 30px rgba(0,0,0,.45)); }
+.gs::before { content:''; position:absolute; left:40px; right:40px; top:50%; height:4px; margin-top:-2px; z-index:0; border-radius:4px; background:linear-gradient(90deg,var(--cyan),var(--violet),var(--pink)); box-shadow:0 0 14px rgba(139,92,246,.7); }
+.gs > * { position:relative; z-index:1; }
+.gp { width:400px; min-width:400px; max-width:400px; flex:0 0 400px; height:128px; padding:14px 22px; display:flex; flex-direction:column; justify-content:center; min-width:0; position:relative; overflow:hidden;
+      background:linear-gradient(135deg,rgba(14,10,29,.97),rgba(26,17,56,.97)); border:1px solid rgba(255,255,255,.14); }
+.gp.l { border-radius:22px; border-left:6px solid var(--cyan); text-align:right; align-items:flex-end; box-shadow:inset 0 0 44px rgba(34,227,255,.14); }
+.gp.r { border-radius:22px; border-right:6px solid var(--pink); text-align:left; align-items:flex-start; box-shadow:inset 0 0 44px rgba(255,61,139,.14); }
+.gn { width:100%; font:900 28px 'Orbitron',sans-serif; text-transform:uppercase; letter-spacing:1px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.gp.l .gn { color:var(--cyan); text-shadow:0 0 16px rgba(34,227,255,.6); }
+.gp.r .gn { color:var(--pink); text-shadow:0 0 16px rgba(255,61,139,.6); }
+.gtag { margin-top:2px; font:800 11px 'Inter',sans-serif; letter-spacing:2px; color:var(--muted); white-space:nowrap; }
+.gtag.new { color:var(--green); }
+.gstats { display:flex; gap:6px; margin-top:9px; width:100%; }
+.gp.l .gstats { justify-content:flex-end; }
+.gstats i { font-style:normal; flex:0 0 auto; min-width:78px; padding:4px 9px; border-radius:9px; text-align:center; background:rgba(255,255,255,.07); border:1px solid rgba(255,255,255,.12); font:800 12px 'Orbitron',sans-serif; white-space:nowrap; }
+.gstats i small { display:block; font:800 8px 'Inter',sans-serif; letter-spacing:1.3px; color:var(--muted); margin-top:1px; }
+.gstats i.rk { color:var(--gold); } .gstats i.el { color:var(--cyan); } .gp.r .gstats i.el { color:var(--pink); }
+.gmid { width:260px; min-width:260px; max-width:260px; flex:0 0 260px; height:128px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px;
+        background:linear-gradient(180deg,rgba(32,20,70,.98),rgba(14,10,29,.98)); border:1px solid rgba(255,255,255,.18); border-radius:22px; box-shadow:0 0 30px rgba(139,92,246,.35); }
+.gnums { display:flex; align-items:center; justify-content:center; gap:10px; }
+.sn { width:84px; height:68px; display:grid; place-items:center; font:900 42px 'Orbitron',sans-serif; border-radius:16px; color:#fff; font-variant-numeric:tabular-nums; overflow:hidden; }
+.sn.a { background:linear-gradient(135deg,#8b5cf6,#22e3ff); box-shadow:0 0 24px rgba(34,227,255,.5); }
+.sn.b { background:linear-gradient(135deg,#ff3d8b,#8b5cf6); box-shadow:0 0 24px rgba(255,61,139,.5); }
+.ss { font:900 30px 'Orbitron',sans-serif; color:var(--muted); width:12px; text-align:center; }
+.sm { display:flex; justify-content:center; align-items:center; gap:6px; }
+.sm span { font:800 11px 'Inter',sans-serif; letter-spacing:2px; text-transform:uppercase; padding:3px 10px; border-radius:999px; background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.2); white-space:nowrap; }
+.sm span.stg { color:var(--gold); border-color:rgba(255,200,87,.5); background:rgba(255,200,87,.1); }
+.dots { display:flex; gap:4px; justify-content:center; height:8px; }
+.dots u { width:18px; height:8px; border-radius:4px; background:rgba(255,255,255,.14); text-decoration:none; }
+.dots u.a { background:var(--cyan); box-shadow:0 0 8px var(--cyan); } .dots u.b { background:var(--pink); box-shadow:0 0 8px var(--pink); }
+.h2h { margin:12px auto 0; width:100%; box-sizing:border-box; padding:8px 18px; border-radius:14px; display:flex; justify-content:center; align-items:center; gap:14px; white-space:nowrap; overflow:hidden;
+       font:800 13px 'Inter',sans-serif; letter-spacing:1px; background:linear-gradient(135deg,rgba(14,10,29,.96),rgba(26,17,56,.96)); border:1px solid rgba(255,255,255,.14); animation:inUp .6s ease both; }
+.h2h b { font:900 14px 'Orbitron',sans-serif; color:var(--gold); }
+.h2h .mu { color:var(--muted); }
+.pop { animation:pop .55s cubic-bezier(.2,1.6,.4,1); }
+@keyframes pop { 0% { transform:scale(1); } 40% { transform:scale(1.4); } 100% { transform:scale(1); } }
+@keyframes inUp { from { opacity:0; transform:translateY(14px); } to { opacity:1; transform:none; } }
+
+/* ---------- статистика игроков (OBS) ---------- */
+.stw { display:flex; gap:var(--g-stats,16px); align-items:flex-start; }
+.tm { width:380px; min-width:380px; max-width:380px; flex:0 0 380px; padding:14px 16px 10px; border-radius:20px; animation:inUp .5s ease both;
+      background:linear-gradient(135deg,rgba(14,10,29,.96),rgba(26,17,56,.96)); border:1px solid rgba(255,255,255,.14); backdrop-filter:blur(8px); }
+.tm.l { border-top:4px solid var(--cyan); box-shadow:0 0 36px rgba(34,227,255,.25); }
+.tm.r { border-top:4px solid var(--pink); box-shadow:0 0 36px rgba(255,61,139,.25); }
+.tmh { display:flex; justify-content:space-between; align-items:baseline; gap:14px; margin-bottom:8px; }
+.tmn { flex:1 1 0; min-width:0; font:900 18px 'Orbitron',sans-serif; text-transform:uppercase; letter-spacing:.5px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.tm.l .tmn { color:var(--cyan); text-shadow:0 0 12px rgba(34,227,255,.55); }
+.tm.r .tmn { color:var(--pink); text-shadow:0 0 12px rgba(255,61,139,.55); }
+.tmt { flex:0 0 auto; font:800 12px 'Orbitron',sans-serif; color:var(--muted); white-space:nowrap; }
+.tmt b { color:#fff; } .tmt b.h { color:var(--gold); }
+.rw, .rwh { display:grid; grid-template-columns:22px 1fr 48px 48px; align-items:center; gap:8px; padding:6px 4px; }
+.rw { border-top:1px solid rgba(255,255,255,.07); }
+.rwh { font:800 10px 'Inter',sans-serif; letter-spacing:2px; color:var(--muted); text-align:center; padding-top:0; }
+.rwh span:nth-child(2) { text-align:left; }
+.rwx { font:800 11px 'Orbitron',sans-serif; color:var(--muted); text-align:center; }
+.rwk, .rwq { font:900 18px 'Orbitron',sans-serif; text-align:center; display:inline-block; }
+.rwq { color:var(--gold); }
+.rwe { color:var(--muted); text-align:center; padding:12px 0; font-size:13px; }
+
+/* ==========================================================
+   КАБИНЕТ
+   ========================================================== */
+body.overlay .toast { display:none; }
+header.top { position:sticky; top:0; z-index:50; height:64px; padding:0 24px; display:flex; align-items:center; justify-content:space-between; gap:12px;
+    background:rgba(10,7,22,.78); backdrop-filter:blur(18px); border-bottom:1px solid var(--border); }
+.brand { display:flex; flex-direction:column; line-height:1.1; }
+.brand b { font:900 20px 'Orbitron',sans-serif; letter-spacing:1.5px; background:var(--grad); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; }
+.brand small { font-size:10px; font-weight:700; letter-spacing:3px; color:var(--muted); margin-top:3px; }
+.top-actions { display:flex; gap:10px; align-items:center; }
+a.link { color:var(--cyan); text-decoration:none; font-weight:700; font-size:13px; }
+.live { font:800 11px 'Inter',sans-serif; letter-spacing:1px; padding:5px 12px; border-radius:999px; color:var(--green); background:rgba(46,229,157,.1); border:1px solid rgba(46,229,157,.4); white-space:nowrap; }
+.live::before { content:''; display:inline-block; width:7px; height:7px; border-radius:50%; background:var(--green); margin-right:7px; box-shadow:0 0 8px var(--green); animation:blink 1.4s infinite; }
+@keyframes blink { 50% { opacity:.3; } }
+
+main { max-width:1100px; margin:24px auto 60px; padding:0 18px; }
+.card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:22px; margin-bottom:18px; backdrop-filter:blur(10px); box-shadow:0 10px 40px rgba(0,0,0,.4); }
+.card h3 { font:800 15px 'Orbitron',sans-serif; letter-spacing:.5px; margin-bottom:16px; display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+.card h3 .tag { margin-left:auto; font:700 11px 'Inter',sans-serif; color:var(--muted); letter-spacing:0; }
+.accent { color:var(--cyan); }
+.muted { color:var(--muted); }
+.grid2 { display:grid; grid-template-columns:1fr 1fr; gap:18px; }
+.grid2 > .card { margin-bottom:0; }
+
+label.lb { display:block; font-size:11px; font-weight:700; color:var(--muted); margin:2px 0 6px; letter-spacing:1px; text-transform:uppercase; }
+input, select { width:100%; padding:12px 14px; margin-bottom:10px; background:rgba(5,3,14,.7); border:1px solid var(--border-2); border-radius:var(--radius-sm); color:var(--text); font:600 15px 'Inter',sans-serif; outline:none; transition:border-color .2s, box-shadow .2s; }
+input::placeholder { color:#5d6285; font-weight:500; }
+input:focus, select:focus { border-color:var(--cyan); box-shadow:0 0 0 3px rgba(34,227,255,.15); }
+select { appearance:none; background-image:linear-gradient(45deg,transparent 50%,var(--muted) 50%),linear-gradient(135deg,var(--muted) 50%,transparent 50%); background-position:calc(100% - 20px) 50%,calc(100% - 14px) 50%; background-size:6px 6px,6px 6px; background-repeat:no-repeat; }
+input[type=checkbox] { width:18px; height:18px; margin:0; accent-color:var(--cyan); }
+
+.btn { display:inline-flex; align-items:center; justify-content:center; gap:8px; padding:12px 18px; border:none; border-radius:var(--radius-sm); background:var(--grad); color:#fff; font:800 14px 'Inter',sans-serif; cursor:pointer; transition:transform .15s, box-shadow .2s, opacity .2s; box-shadow:0 6px 22px rgba(139,92,246,.4); }
+.btn:hover { transform:translateY(-1px); box-shadow:0 10px 28px rgba(34,227,255,.35); }
+.btn:active { transform:scale(.97); }
+.btn.block { width:100%; }
+.btn.ghost { background:var(--surface-2); border:1px solid var(--border-2); box-shadow:none; }
+.btn.green { background:linear-gradient(135deg,#12b981,#22e3ff); box-shadow:0 6px 22px rgba(46,229,157,.3); }
+.btn.pink { background:linear-gradient(135deg,#ff4d6d,#ff3d8b); box-shadow:0 6px 22px rgba(255,77,109,.35); }
+.btn.gold { background:linear-gradient(135deg,#ffb020,#ffc857); color:#1a1200; box-shadow:0 6px 22px rgba(255,200,87,.3); }
+.btn.sm { padding:8px 12px; font-size:12px; }
+.row { display:flex; gap:10px; }
+.row > * { flex:1; }
+.row .fixed { flex:0 0 auto; }
+
+/* вход */
+#login { max-width:460px; margin:70px auto; text-align:center; }
+#login h3 { justify-content:center; font-size:17px; }
+#login p { color:var(--muted); margin-bottom:16px; }
+
+/* вкладки */
+.tabs { position:sticky; top:72px; z-index:40; display:flex; gap:6px; padding:6px; margin-bottom:18px; background:rgba(10,7,22,.82); backdrop-filter:blur(18px); border:1px solid var(--border); border-radius:16px; }
+.tabs button { flex:1; padding:11px 8px; border:none; border-radius:12px; background:none; color:var(--muted); font:800 13px 'Inter',sans-serif; cursor:pointer; transition:all .2s; }
+.tabs button.on { background:var(--grad); color:#fff; box-shadow:0 6px 20px rgba(139,92,246,.4); }
+.tabs .bd { display:inline-block; min-width:18px; margin-left:4px; padding:0 6px; border-radius:999px; background:var(--pink); color:#fff; font-size:11px; }
+.tabs .bd:empty { display:none; }
+.tabp { display:none; }
+.tabp.on { display:block; animation:inUp .35s ease both; }
+
+/* предпросмотр */
+.checker { position:relative; isolation:isolate; background-image:conic-gradient(#15102b 25%,#0e0a1d 0 50%,#15102b 0 75%,#0e0a1d 0); background-size:22px 22px; border-radius:var(--radius-sm); border:1px solid var(--border); padding:18px; display:flex; flex-direction:column; gap:18px; align-items:flex-start; overflow-x:auto; overflow-y:hidden; }
+.prev-item { position:relative; z-index:1; }
+.prev-item { transition:opacity .3s; }
+.prev-item[data-visible="0"] { opacity:.25; }
+.checker .prev-item { zoom:.68; }
+
+/* команды и игроки */
+.tcard { border-radius:var(--radius); padding:18px; background:var(--surface); border:1px solid var(--border); box-shadow:0 10px 40px rgba(0,0,0,.4); }
+.tcard.left { border-top:3px solid var(--cyan); }
+.tcard.right { border-top:3px solid var(--pink); }
+.tcard .ttl { font:800 12px 'Orbitron',sans-serif; letter-spacing:1px; margin-bottom:12px; display:flex; align-items:center; gap:8px; }
+.tcount { margin-left:auto; font:700 11px 'Inter',sans-serif; color:var(--muted); letter-spacing:0; }
+.dot { width:10px; height:10px; border-radius:50%; }
+.left .dot { background:var(--cyan); box-shadow:0 0 10px var(--cyan); }
+.right .dot { background:var(--pink); box-shadow:0 0 10px var(--pink); }
+.tsum { display:flex; gap:8px; flex-wrap:wrap; margin:4px 0 12px; }
+.prow { display:grid; grid-template-columns:1fr auto auto auto 30px; gap:10px; align-items:center; padding:8px 10px; margin-bottom:6px; border-radius:12px; background:rgba(5,3,14,.55); border:1px solid var(--border); }
+.prow.hd { background:none; border:none; padding:0 10px; margin-bottom:4px; font:800 10px 'Inter',sans-serif; letter-spacing:1.5px; color:var(--muted); }
+.prow.hd span:nth-child(2), .prow.hd span:nth-child(3), .prow.hd span:nth-child(4) { width:94px; text-align:center; }
+.pname { font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.ctr { display:flex; align-items:center; gap:4px; }
+.ctr button { width:30px; height:30px; border:none; border-radius:9px; color:#fff; font:900 16px 'Inter',sans-serif; cursor:pointer; background:rgba(255,255,255,.08); }
+.ctr button:active { transform:scale(.88); }
+.ctr b { min-width:32px; text-align:center; font:900 16px 'Orbitron',sans-serif; }
+.ctr.k button.pp { background:rgba(46,229,157,.25); border:1px solid rgba(46,229,157,.6); }
+.ctr.h button.pp { background:rgba(255,200,87,.22); border:1px solid rgba(255,200,87,.6); }
+.ctr.h b { color:var(--gold); }
+.rm { width:30px; height:30px; border:none; border-radius:9px; background:rgba(255,77,109,.15); color:var(--red); font-weight:900; cursor:pointer; }
+.addp { display:flex; gap:8px; margin-top:12px; }
+.addp input { margin:0; }
+.addp .btn { flex:0 0 auto; }
+.opt { display:flex; align-items:center; gap:10px; font-size:13px; color:var(--muted); margin:12px 0 0; cursor:pointer; }
+.none { color:var(--muted); text-align:center; padding:22px 10px; font-size:13px; }
+
+/* выбор игрока (VS) */
+.side { padding:16px; border-radius:var(--radius-sm); background:rgba(5,3,14,.45); border:1px solid var(--border); }
+.side.left { border-color:rgba(34,227,255,.4); }
+.side.right { border-color:rgba(255,61,139,.4); }
+.side .ttl { font:800 12px 'Orbitron',sans-serif; letter-spacing:1px; margin-bottom:12px; display:flex; align-items:center; gap:8px; }
+.plist { height:170px; overflow-y:auto; margin-bottom:10px; border:1px solid var(--border); border-radius:var(--radius-sm); background:rgba(5,3,14,.6); padding:4px; }
+.pl { width:100%; display:flex; align-items:center; gap:10px; padding:8px 10px; border:none; background:none; color:var(--text); font:600 14px 'Inter',sans-serif; border-radius:9px; cursor:pointer; text-align:left; }
+.pl:hover { background:var(--surface-2); }
+.left .pl.on { background:rgba(34,227,255,.18); box-shadow:inset 0 0 0 1px rgba(34,227,255,.6); }
+.right .pl.on { background:rgba(255,61,139,.18); box-shadow:inset 0 0 0 1px rgba(255,61,139,.6); }
+.pl .mi { width:28px; height:28px; border-radius:8px; object-fit:cover; flex-shrink:0; display:grid; place-items:center; background:var(--grad); font:800 13px 'Orbitron',sans-serif; }
+.pl span { flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.pl small { color:var(--muted); font-weight:600; font-size:11px; }
+
+/* счёт */
+.stp { display:grid; grid-template-columns:44px 1fr 44px; gap:8px; align-items:start; }
+.stp input { margin:0; text-align:center; font:900 22px 'Orbitron',sans-serif; padding:9px; }
+.stp button { height:48px; border:none; border-radius:var(--radius-sm); font:900 22px 'Inter',sans-serif; cursor:pointer; color:#fff; }
+.stp .m { background:rgba(255,77,109,.25); border:1px solid rgba(255,77,109,.6); }
+.stp .p { background:rgba(46,229,157,.22); border:1px solid rgba(46,229,157,.6); }
+.stp button:active { transform:scale(.92); }
+.score-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:10px; }
+
+/* ссылки */
+.urlrow { display:flex; gap:8px; margin-bottom:12px; }
+.urlrow input { margin:0; font-size:12px; color:var(--cyan); }
+.tip { font-size:13px; color:var(--muted); background:rgba(255,200,87,.07); border:1px solid rgba(255,200,87,.25); border-radius:var(--radius-sm); padding:12px 14px; line-height:1.55; }
+.tip b { color:var(--gold); }
+
+/* журнал */
+.jstats { display:flex; gap:10px; margin-bottom:14px; flex-wrap:wrap; }
+.chip { font:800 12px 'Inter',sans-serif; padding:6px 12px; border-radius:999px; background:var(--surface-2); border:1px solid var(--border-2); white-space:nowrap; }
+.chip.w { color:var(--green); } .chip.l { color:var(--red); } .chip.g { color:var(--gold); } .chip.c { color:var(--cyan); }
+.series { padding:16px; margin-bottom:16px; border-radius:var(--radius-sm); background:linear-gradient(135deg,rgba(139,92,246,.14),rgba(34,227,255,.08)); border:1px solid rgba(139,92,246,.4); }
+.series .big { font:900 26px 'Orbitron',sans-serif; margin:6px 0 12px; }
+.series .big .a { color:var(--cyan); } .series .big .b { color:var(--pink); }
+.series .sub { font-size:12px; color:var(--muted); }
+.jm { padding:14px; margin-bottom:12px; border-radius:var(--radius-sm); background:rgba(5,3,14,.55); border:1px solid var(--border); border-left:4px solid var(--muted); }
+.jm.win { border-left-color:var(--green); } .jm.lose { border-left-color:var(--red); }
+.jhead { display:flex; align-items:center; gap:14px; }
+.jinfo { flex:1; min-width:0; }
+.jt { font-weight:700; overflow-wrap:anywhere; }
+.jt b { font:900 15px 'Orbitron',sans-serif; margin:0 8px; color:var(--cyan); }
+.jmeta { font-size:12px; color:var(--muted); margin-top:2px; }
+.jb { display:flex; gap:6px; flex-shrink:0; }
+.jr { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:12px; }
+.jc { font-size:12px; padding:10px; border-radius:10px; background:rgba(255,255,255,.03); border:1px solid var(--border); }
+.jc.l { border-top:2px solid var(--cyan); } .jc.r { border-top:2px solid var(--pink); }
+.jc div { display:flex; justify-content:space-between; gap:8px; padding:2px 0; }
+.jc div span:first-child { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-weight:600; }
+.jc div span:last-child { color:var(--muted); white-space:nowrap; }
+.jc div span:last-child b { color:#fff; } .jc div span:last-child i { color:var(--gold); font-style:normal; font-weight:800; }
+
+/* тост */
+.toast { position:fixed; left:50%; bottom:28px; z-index:9999; max-width:90vw; padding:12px 20px; border-radius:999px; background:rgba(20,15,40,.97); border:1px solid var(--border-2); font-weight:600; box-shadow:0 10px 40px rgba(0,0,0,.5); transform:translate(-50%,30px); opacity:0; pointer-events:none; transition:all .3s; }
+.toast.show { transform:translate(-50%,0); opacity:1; }
+.toast.error { border-color:var(--red); } .toast.success { border-color:var(--green); }
+
+@media (max-width:860px) { .grid2 { grid-template-columns:1fr; } }
+@media (max-width:700px) {
+    body { font-size:14px; }
+    header.top { padding:0 14px; height:58px; }
+    .tabs { top:64px; }
+    main { padding:0 12px; margin-top:16px; }
+    .card { padding:16px; border-radius:16px; }
+    .vsgrid { grid-template-columns:1fr !important; }
+    .jhead { flex-direction:column; align-items:stretch; }
+    .jb { justify-content:flex-end; }
+    .jr { grid-template-columns:1fr; }
+    .urlrow { flex-direction:column; }
+    .brand b { font-size:16px; }
+    .brand small { display:none; }
+    input, select { font-size:16px; }
+    .checker .vs { min-width:0; flex-direction:column; align-items:stretch; }
+    .checker .vsb { align-self:center; }
+    .prow { grid-template-columns:1fr 1fr 1fr 30px; }
+    .prow .pname { grid-column:1 / -1; }
+    .prow.hd { display:none; }
+}
+
+.pname { white-space:normal !important; overflow:visible !important; }
+.pname .chip { margin-left:6px; font-size:10px; }
+.chip.w { color:#2ee59d; border-color:rgba(46,229,157,.5); background:rgba(46,229,157,.1); }
+.chip.l { color:#ff4d6d; border-color:rgba(255,77,109,.5); background:rgba(255,77,109,.1); }
+.ctr.a b { color:#ff3d8b; }
+.ctr.a button.pp { background:rgba(255,61,139,.22); border:1px solid rgba(255,61,139,.6); }
+.hd-avl { cursor:pointer; display:inline-flex; }
+.hd-av { width:38px; height:38px; border-radius:11px; object-fit:cover; border:2px solid #22e3ff; box-shadow:0 0 12px rgba(34,227,255,.6); }
+.btn:hover { box-shadow:0 0 18px rgba(34,227,255,.55); transform:translateY(-1px); }
+.btn { transition:box-shadow .2s, transform .15s; }
+
+.mav { width:30px; height:30px; border-radius:9px; object-fit:cover; display:block; }
+.mav.ph { display:grid; place-items:center; font:900 14px 'Orbitron',sans-serif; background:var(--grad); color:#fff; }
+.rwn { display:flex; align-items:center; gap:8px; min-width:0; }
+.rwn .rwt { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.tpm { font-style:normal; font:800 10px 'Inter',sans-serif; padding:2px 6px; border-radius:6px; background:rgba(255,77,109,.2); border:1px solid rgba(255,77,109,.6); color:#ff4d6d; flex-shrink:0; }
+.prevd { margin:4px 0; padding:6px 8px; border-radius:8px; font:600 11px/1.5 'Inter',sans-serif; color:#cfd3f5; background:rgba(255,200,87,.07); border:1px dashed rgba(255,200,87,.4); }
+.prevd b { color:var(--gold); }
+.pairb { display:inline-block; margin-top:4px; padding:3px 10px; border-radius:8px; font:800 11px 'Inter',sans-serif; cursor:pointer; color:#bfe9ff; background:rgba(34,227,255,.10); border:1px solid rgba(34,227,255,.45); max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.pairb.none { color:#ffc857; background:rgba(255,200,87,.10); border-color:rgba(255,200,87,.5); }
+span.pairs { display:inline-block; margin-top:4px; font:700 11px 'Inter',sans-serif; color:var(--muted); }
+.tpb { margin-left:8px; padding:3px 9px; border-radius:8px; font:800 11px 'Inter',sans-serif; cursor:pointer; color:#ffb3c0; background:rgba(255,77,109,.12); border:1px solid rgba(255,77,109,.5); }
+.tpb.on { background:rgba(255,77,109,.35); color:#fff; }
+.tp-back { position:fixed; inset:0; z-index:99999; background:rgba(0,0,0,.7); display:grid; place-items:center; padding:16px; }
+.tp-box { width:min(94vw,400px); padding:20px; border-radius:20px; background:#120c26; border:1px solid var(--border); box-shadow:0 0 40px rgba(255,61,139,.35); }
+.tp-box h3 { margin:0 0 6px; } .tp-box .btn { margin-top:8px; }
+
+.grid2 > * { min-width:0; }
+.addp { flex-wrap:wrap; }
+.addp input { flex:1 1 140px; min-width:0; }
+/* ---- кнопка ТП аноним, 🏆 победил, этапы, быстрый выбор в VS ---- */
+.addp .tpa { color:#ffb3c0; border-color:rgba(255,77,109,.5); }
+.wonb { margin-left:6px; padding:3px 9px; border-radius:8px; font:800 11px 'Inter',sans-serif; cursor:pointer; color:var(--muted); background:rgba(255,255,255,.06); border:1px solid var(--border-2); }
+.wonb.on { color:#1a1200; background:linear-gradient(135deg,#ffb020,#ffc857); border-color:transparent; }
+.rchips { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:8px; min-height:4px; }
+.rchips button { padding:4px 10px; border-radius:999px; border:1px solid var(--border-2); background:var(--surface-2); color:var(--text); font:700 12px 'Inter',sans-serif; cursor:pointer; }
+.left .rchips button:hover { border-color:var(--cyan); } .right .rchips button:hover { border-color:var(--pink); }
+.vsinfo { font-size:12px; color:var(--muted); margin:-2px 0 10px; line-height:1.5; min-height:18px; }
+.vsinfo b { color:var(--text); }
+.stg-now { display:flex; align-items:center; gap:12px; flex-wrap:wrap; padding:12px 14px; border-radius:var(--radius-sm); background:linear-gradient(135deg,rgba(255,200,87,.12),rgba(139,92,246,.10)); border:1px solid rgba(255,200,87,.4); margin-bottom:10px; }
+.stg-now .big { font:900 18px 'Orbitron',sans-serif; color:var(--gold); }
+.stg-now.started { border-color:rgba(46,229,157,.6); background:linear-gradient(135deg,rgba(46,229,157,.14),rgba(34,227,255,.08)); }
+.stg-now.started .big { color:var(--green); }
+.stg-tbl { width:100%; border-collapse:collapse; font-size:12px; margin-bottom:14px; }
+.stg-tbl th { text-align:left; font:800 10px 'Inter',sans-serif; letter-spacing:1.5px; color:var(--muted); padding:6px 8px; border-bottom:1px solid var(--border-2); }
+.stg-tbl td { padding:8px; border-bottom:1px solid var(--border); vertical-align:top; }
+.stg-tbl tr.cur td { background:rgba(255,200,87,.07); }
+.stg-tbl .nm { display:inline-block; margin:0 4px 4px 0; padding:2px 8px; border-radius:999px; background:var(--surface-2); border:1px solid var(--border-2); font-weight:700; }
+.stg-tbl .nm.l { border-color:rgba(34,227,255,.5); } .stg-tbl .nm.r { border-color:rgba(255,61,139,.5); }
+.stg-tbl .nm.out { opacity:.45; text-decoration:line-through; }
+.stg-tbl .sc { font:900 14px 'Orbitron',sans-serif; white-space:nowrap; }
+.stg-tbl-wrap { overflow-x:auto; }
+.proj { display:flex; flex-wrap:wrap; gap:8px; margin-top:6px; }
+
+/* баннеры игроков в карточках OBS */
+.pc > .pcbn { position:absolute !important; inset:0 !important; z-index:0; border-radius:inherit; padding:0 !important; overflow:hidden !important; pointer-events:none; }
+.pc.hasbn::before { content:''; position:absolute; inset:0; z-index:1; border-radius:inherit; background:linear-gradient(90deg,rgba(8,5,20,.20),rgba(8,5,20,.62)); pointer-events:none; }
+.pc.hasbn.r::before { background:linear-gradient(270deg,rgba(8,5,20,.20),rgba(8,5,20,.62)); }
+.pc > .av-wrap, .pc > .pi { position:relative; z-index:2; }
+.pc > .pi { text-shadow:0 1px 6px rgba(0,0,0,.85); }
+.rw { position:relative; }
+.rw > .rwbn { position:absolute !important; inset:0 !important; z-index:0; border-radius:inherit; padding:0 !important; opacity:.55; overflow:hidden !important; pointer-events:none; }
+.rw > *:not(.rwbn) { position:relative; z-index:1; }
+.ps.mo b { color:#c9b8ff; } .ps.st b { color:#ffb36b; }
+.ui-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }
+@media (max-width:700px) { .ui-grid { grid-template-columns:1fr; } }
+
+.dots s { width:16px; flex:0 0 16px; }
+.rw.out { opacity:.45; } .rw.out .rwt { text-decoration:line-through; }
+/* разделитель «2 ЭТАП»: проигравшие сверху, победители снизу */
+.rwd { display:flex; align-items:center; gap:10px; margin:8px 0 4px; font:900 12px 'Orbitron',sans-serif; letter-spacing:3px; color:var(--gold); text-shadow:0 0 12px rgba(255,200,87,.6); }
+.rwd::before, .rwd::after { content:''; flex:1; height:2px; border-radius:2px; background:linear-gradient(90deg,transparent,rgba(255,200,87,.85),transparent); }
+.stgdiv { display:flex; align-items:center; gap:10px; margin:10px 0 8px; font:900 12px 'Orbitron',sans-serif; letter-spacing:3px; color:var(--gold); }
+.stgdiv::before, .stgdiv::after { content:''; flex:1; height:2px; border-radius:2px; background:linear-gradient(90deg,transparent,rgba(255,200,87,.85),transparent); }
+[hidden] { display:none !important; }
+.rwd.old, .stgdiv.old { color:var(--muted); text-shadow:none; }
+.rwd.old::before, .rwd.old::after, .stgdiv.old::before, .stgdiv.old::after { background:linear-gradient(90deg,transparent,rgba(255,255,255,.35),transparent); }
+.stgwait { color:var(--muted); font-size:12px; text-align:center; padding:8px 4px; }
+.sm span.stg { animation:stgBlink 1.6s ease-in-out infinite; }
+@keyframes stgBlink { 0%,100% { box-shadow:0 0 0 rgba(255,200,87,0); } 50% { box-shadow:0 0 14px rgba(255,200,87,.7); } }
+.prow.out { opacity:.55; }
+.lostb { margin-left:6px; padding:3px 9px; border-radius:8px; font:800 11px 'Inter',sans-serif; cursor:pointer; color:#ffb3c0; background:rgba(255,77,109,.10); border:1px solid rgba(255,77,109,.45); }
+.lostb.on { color:#fff; background:rgba(255,77,109,.40); }
+</style>
+<link rel="stylesheet" href="premium.css">
+</head>
+<body>
+
+<!-- Оверлей для OBS -->
+<div id="overlay" data-visible="0"></div>
+
+<!-- Кабинет -->
+<div id="cabinet">
+<header class="top">
+    <div class="brand"><b>DILENOW STREAMERS</b><small>КАБИНЕТ СТРИМЕРА</small></div>
+    <div class="top-actions">
+        <label class="hd-avl" id="hd-avl" hidden title="Сменить аватарку"><img id="hd-av" class="hd-av" alt=""><input type="file" id="my-av-file" accept="image/*" hidden></label>
+        <span class="live" id="live-pill" hidden>LIVE</span>
+        <button class="btn green sm" id="btn-live" hidden>🔴 Начать стрим</button>
+        <a class="link" href="index.html">← На сайт</a>
+        <button class="btn ghost sm" id="btn-logout" hidden>Выйти</button>
+    </div>
+</header>
+
+<main>
+    <!-- Вход -->
+    <div class="card" id="login">
+        <h3>🔑 Вход в <span class="accent">кабинет стримера</span></h3>
+        <p id="login-msg">Войди в свой профиль и введи ключ от администратора. Доступ работает только с тем профилем, которому выдан ключ.</p>
+        <div id="acc-box">
+            <input type="text" id="acc-user" placeholder="Юзернейм профиля (@username)" autocomplete="username">
+            <input type="password" id="acc-pass" placeholder="Пароль профиля" autocomplete="current-password">
+        </div>
+        <input type="password" id="key-input" placeholder="Ключ стримера" autocomplete="off">
+        <button class="btn block" id="btn-login">Войти в кабинет</button>
+    </div>
+
+    <!-- Панель -->
+    <div id="panel" hidden>
+
+        <div class="tabs" id="tabs">
+            <button class="on" data-tab="match">🎮 Матч</button>
+            <button data-tab="overlay">📺 Оверлеи</button>
+            <button data-tab="journal">📝 Журнал <span class="bd" id="jbadge"></span></button>
+        </div>
+
+        <!-- ===== ВКЛАДКА: МАТЧ ===== -->
+        <div class="tabp on" id="tab-match">
+
+            <div class="card">
+                <h3>👁 Предпросмотр <span class="tag">так это увидят зрители в OBS</span></h3>
+                <div class="checker">
+                    <div class="prev-item" id="pv-vs" data-visible="0"></div>
+                    <div class="prev-item" id="pv-score" data-visible="1"></div>
+                    <div class="prev-item" id="pv-stats" data-visible="1"></div>
+                </div>
+            </div>
+
+            <div class="card" id="vs-card">
+                <h3>🎴 VS карточки игроков <span class="tag">ник → на карточке рейтинг, матчи и ELO</span></h3>
+                <div class="grid2 vsgrid" style="gap:14px">
+                    <div class="side left">
+                        <div class="ttl"><span class="dot"></span> ЛЕВЫЙ</div>
+                        <div class="rchips" id="rc-left"></div>
+                        <input type="text" id="left-search" placeholder="Поиск игрока или новый ник" autocomplete="off">
+                        <div class="plist" id="left-list"></div>
+                        <input type="text" id="left-guild" placeholder="🏰 Гильдия">
+                        <div class="vsinfo" id="vi-left"></div>
+                        <div class="row">
+                            <button class="btn ghost" data-new="left">＋ Новый</button>
+                            <button class="btn green" data-apply="left">✓ Применить</button>
+                        </div>
+                    </div>
+                    <div class="side right">
+                        <div class="ttl"><span class="dot"></span> ПРАВЫЙ</div>
+                        <div class="rchips" id="rc-right"></div>
+                        <input type="text" id="right-search" placeholder="Поиск игрока или новый ник" autocomplete="off">
+                        <div class="plist" id="right-list"></div>
+                        <input type="text" id="right-guild" placeholder="🏰 Гильдия">
+                        <div class="vsinfo" id="vi-right"></div>
+                        <div class="row">
+                            <button class="btn ghost" data-new="right">＋ Новый</button>
+                            <button class="btn pink" data-apply="right">✓ Применить</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="row" style="margin-top:14px">
+                    <button class="btn gold" id="btn-vs-toggle">👁 Показать VS</button>
+                    <button class="btn ghost" id="btn-swap">⇄ Поменять местами</button>
+                </div>
+            </div>
+
+            <div class="card" id="stage-card"><h3>🎮 Игра <span class="tag">когда игра закончилась — начни 2 этап</span></h3><div id="stage-banner"></div></div>
+
+            <div class="grid2" style="margin-bottom:18px">
+                <div class="tcard left">
+                    <div class="ttl"><span class="dot"></span> ЛЕВАЯ КОМАНДА <span class="tcount" id="tcount-left">0</span></div>
+                    <label class="lb">Название команды / гильдии</label>
+                    <input type="text" id="t-left" placeholder="Гильдия">
+                    <div class="tsum" id="tsum-left"></div>
+                    <div class="prow hd"><span>ИГРОК</span><span>КИЛЛЫ</span><span>ХЕДШОТЫ</span><span>ЭЙС</span><span></span></div>
+                    <div id="tl-left"></div>
+                    <div class="addp">
+                        <input type="text" id="add-left" list="dl-players" placeholder="Ник игрока" autocomplete="off">
+                        <button class="btn green" data-addp="left">＋</button>
+                        <button class="btn ghost tpa" data-anon="left" title="Не знаем, кто должен был зайти: ТП без ника">ТП аноним</button>
+                    </div>
+                    <button class="btn ghost sm" data-clr="left" style="margin-top:12px">↺ Обнулить статистику</button>
+                </div>
+
+                <div class="tcard right">
+                    <div class="ttl"><span class="dot"></span> ПРАВАЯ КОМАНДА <span class="tcount" id="tcount-right">0</span></div>
+                    <label class="lb">Название команды / гильдии</label>
+                    <input type="text" id="t-right" placeholder="Гильдия">
+                    <div class="tsum" id="tsum-right"></div>
+                    <div class="prow hd"><span>ИГРОК</span><span>КИЛЛЫ</span><span>ХЕДШОТЫ</span><span>ЭЙС</span><span></span></div>
+                    <div id="tl-right"></div>
+                    <div class="addp">
+                        <input type="text" id="add-right" list="dl-players" placeholder="Ник игрока" autocomplete="off">
+                        <button class="btn pink" data-addp="right">＋</button>
+                        <button class="btn ghost tpa" data-anon="right" title="Не знаем, кто должен был зайти: ТП без ника">ТП аноним</button>
+                    </div>
+                    <button class="btn ghost sm" data-clr="right" style="margin-top:12px">↺ Обнулить статистику</button>
+                </div>
+            </div>
+            <datalist id="dl-players"></datalist>
+
+            <div class="card">
+                <h3>🎬 Табло счёта <span class="tag">счёт команд считается отдельно от киллов</span></h3>
+                <div class="score-grid">
+                    <div class="stp">
+                        <button class="m" data-adj="l" data-d="-1">−</button>
+                        <input type="number" id="sc-l" value="0" min="0" inputmode="numeric">
+                        <button class="p" data-adj="l" data-d="1">+</button>
+                    </div>
+                    <div class="stp">
+                        <button class="m" data-adj="r" data-d="-1">−</button>
+                        <input type="number" id="sc-r" value="0" min="0" inputmode="numeric">
+                        <button class="p" data-adj="r" data-d="1">+</button>
+                    </div>
+                </div>
+                <div class="score-grid">
+                    <div>
+                        <label class="lb">Формат</label>
+                        <select id="sc-format">
+                            <option selected>6x6</option><option>8x8</option><option>10x10</option><option>12x12</option>
+                        </select>
+                    </div>
+                </div>
+                <label class="opt"><input type="checkbox" id="opt-hskill"> Хедшот тоже считать как килл (+1 к киллам)</label>
+                <div class="row" style="margin-top:14px">
+                    <button class="btn gold" id="btn-sc-update">🔄 Обновить</button>
+                    <button class="btn ghost" id="btn-sc-toggle">🙈 Скрыть табло</button>
+                </div>
+                <div class="row" style="margin-top:10px">
+                    <button class="btn ghost" id="btn-stats-toggle">🙈 Скрыть статистику</button>
+                    <button class="btn ghost" id="btn-sc-reset">↺ Счёт 0 : 0</button>
+                    <button class="btn ghost" id="btn-stats-reset">↺ Обнулить килы и хедшоты</button>
+                    <button class="btn green" id="btn-stage">▶ Начать 2 этап</button>
+                    <button class="btn gold" id="btn-finish">🏁 Завершить матч</button>
+                    <button class="btn ghost" id="btn-newmatch">🆕 Новый матч</button>
+                    <button class="btn ghost" id="btn-stage-undo" hidden>↶ Отменить последнее действие</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== ВКЛАДКА: ОВЕРЛЕИ ===== -->
+        <div class="tabp" id="tab-overlay">
+            <div class="card">
+                <h3>↔ Расстояние между блоками <span class="tag">видно сразу в предпросмотре</span></h3>
+                <p class="muted" style="font-size:12px;margin-bottom:12px">Блоки гильдий связаны линией, но между ними можно сделать «пропасть» нужной ширины (в пикселях). Меняется на стриме сразу.</p>
+                <div class="ui-grid">
+                    <div><label class="lb">Табло: между гильдиями и счётом</label><input type="number" id="ui-gap-score" min="0" max="800" step="2" inputmode="numeric"></div>
+                    <div><label class="lb">Статистика: между командами</label><input type="number" id="ui-gap-stats" min="0" max="800" step="2" inputmode="numeric"></div>
+                    <div><label class="lb">VS: между игроками</label><input type="number" id="ui-gap-vs" min="0" max="800" step="2" inputmode="numeric"></div>
+                </div>
+                <button class="btn ghost sm" id="btn-ui-reset" type="button">↺ Вернуть по умолчанию</button>
+            </div>
+
+            <div class="card">
+                <h3>📡 Эфир и профиль <span class="tag">показывается на сайте в разделе «Стримеры»</span></h3>
+                <label class="opt" style="margin:0 0 12px"><input type="checkbox" id="opt-autolive" checked> Автоматически показывать меня «В ЭФИРЕ» на сайте, пока этот кабинет открыт (OBS-оверлеи работают)</label>
+                <label class="lb">Мой VK профиль</label>
+                <div class="urlrow"><input type="text" id="inp-vk" placeholder="https://vk.com/… или @имя"><button class="btn green sm" id="btn-vk-save" type="button">💾</button></div>
+                <p class="muted" style="font-size:12px;margin-top:-4px">Если у тебя указан YouTube-канал, трансляция определяется автоматически, как только она начинается.</p>
+            </div>
+
+            <div class="card">
+                <h3>🔗 Ссылки для OBS</h3>
+                <label class="lb">VS карточки</label>
+                <div class="urlrow"><input type="text" id="url-vs" readonly><button class="btn ghost sm" data-copy="url-vs">📋</button></div>
+                <label class="lb">Табло счёта</label>
+                <div class="urlrow"><input type="text" id="url-score" readonly><button class="btn ghost sm" data-copy="url-score">📋</button></div>
+                <label class="lb">Статистика — обе команды</label>
+                <div class="urlrow"><input type="text" id="url-stats" readonly><button class="btn ghost sm" data-copy="url-stats">📋</button></div>
+                <label class="lb">Статистика — только левая</label>
+                <div class="urlrow"><input type="text" id="url-stats-l" readonly><button class="btn ghost sm" data-copy="url-stats-l">📋</button></div>
+                <label class="lb">Статистика — только правая</label>
+                <div class="urlrow"><input type="text" id="url-stats-r" readonly><button class="btn ghost sm" data-copy="url-stats-r">📋</button></div>
+                <div class="tip">
+                    <b>Как подключить:</b> OBS → Источники → ＋ → «Браузер» → вставь ссылку. Фон прозрачный.
+                    Размеры: <b>1100×210</b> VS · <b>1100×230</b> счёт · <b>800×420</b> статистика (обе) · <b>420×420</b> статистика (одна команда). Все плашки фиксированного размера: длинный ник, гильдия или счёт их не растягивают.<br>
+                    Меняй данные в кабинете — оверлей обновится сам за 1–2 секунды. У каждого стримера свои ссылки.
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== ВКЛАДКА: ЖУРНАЛ ===== -->
+        <div class="tabp" id="tab-journal">
+            <div class="card">
+                <h3>📝 Журнал зарубы <button class="btn ghost sm" id="btn-journal-new" style="margin-left:auto">🔄 Новая серия</button></h3>
+
+                <div class="series" id="series" hidden></div>
+
+                <div class="jstats" id="jstats"></div>
+                <div id="journal"></div>
+                <button class="btn green block" id="btn-add-match">🏁 Завершить матч и записать в журнал</button>
+                <button class="btn ghost block" id="btn-add-nosreset" style="margin-top:10px">＋ Записать текущее состояние в журнал (матч не завершать)</button>
+                <button class="btn gold block" id="btn-send-series" style="margin-top:10px">📤 Отправить админу общий итог серии</button>
+            </div>
+        </div>
+    </div>
+</main>
+</div>
+
+<script>
+/* ==========================================================
+   Firebase
+   ========================================================== */
+firebase.initializeApp({
+    apiKey: "AIzaSyA-kuzGj3Buo2LvD2LNHzQI1PdxwK5PeoE",
+    authDomain: "elosports-tracker-stream.firebaseapp.com",
+    projectId: "elosports-tracker-stream",
+    storageBucket: "elosports-tracker-stream.firebasestorage.app",
+    messagingSenderId: "720000678328",
+    appId: "1:720000678328:web:95a0ae4c5f22e1768d374d"
+});
+const db = firebase.firestore();
+const auth = firebase.auth();
+// заглушки для shop-data.js (в оверлее нужны только рамки и эффекты игроков)
+const periodKey = (date = new Date()) => {
+    const t = new Date(date.getTime() + 6 * 3600e3);
+    let y = t.getUTCFullYear(), m = t.getUTCMonth();
+    if (t.getUTCDate() < 17) { m -= 1; if (m < 0) { m = 11; y -= 1; } }
+    return y + '-' + String(m + 1).padStart(2, '0');
+};
+const guildKey = name => String(name || '').trim().toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '_').replace(/^_+|_+$/g, '') || 'unknown';
+</script>
+<script src="shop-data.js"></script>
+<script src="obs-halloween.js"></script>
+<script>
+
+const $ = id => document.getElementById(id);
+const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmtText = f => String(f || '6x6').replace('x', '×');
+const num = v => Math.max(0, Number(v) || 0);
+const sumBy = (list, f) => (list || []).reduce((a, p) => a + num(p[f]), 0);
+const plural = (n, a, b, c) => { n = Math.abs(n) % 100; const d = n % 10; return (n > 10 && n < 20) ? c : d === 1 ? a : (d >= 2 && d <= 4) ? b : c; };
+
+function toast(msg, type = '') {
+    let el = $('toast');
+    if (!el) { el = document.createElement('div'); el.id = 'toast'; document.body.appendChild(el); }
+    el.textContent = msg;
+    el.className = 'toast show ' + type;
+    clearTimeout(toast._t);
+    toast._t = setTimeout(() => { el.className = 'toast ' + type; }, 2600);
+}
+
+/* ==========================================================
+   Отрисовка оверлеев (общая для кабинета и OBS)
+   ========================================================== */
+const validAv = a => (a && !String(a).startsWith('blob:') && !String(a).includes('placeholder.com')) ? a : '';
+// данные игроков (аватарка и купленные рамки/эффекты) подтягиваются из профиля и обновляются на лету
+const PCACHE = new Map(), PSUBS = new Set(), GM = new Map(), GSUBS = new Set();
+let onPlayerData = () => {};
+function pdata(pid) {
+    if (!pid) return null;
+    if (!PSUBS.has(pid)) {
+        PSUBS.add(pid);
+        db.collection('players').doc(pid).onSnapshot(d => {
+            if (d.exists) { const x = d.data(); PCACHE.set(pid, { avatar: validAv(x.avatarUrl), equipped: x.equipped || {}, elo: x.elo ?? null, games: Number(x.totalGames) || 0, streak: Number(x.streak) || 0 }); }
+            onPlayerData();
+        }, () => {});
+    }
+    return PCACHE.get(pid) || null;
+}
+// все гильдии одним слушателем: данные, место в топе (как на сайте: победы → разница П−ПОР) и счёт личных встреч
+let GVER = 0, GRANK = new Map(), GTOTAL = 0, GSTARTED = false;
+function startGuilds() {
+    if (GSTARTED) return; GSTARTED = true;
+    db.collection('guilds').onSnapshot(sn => {
+        GM.clear(); sn.docs.forEach(d => GM.set(d.id, d.data()));
+        const ranked = [...GM.entries()].filter(([, g]) => num(g.games) > 0)
+            .sort((a, b) => (num(b[1].wins) - num(a[1].wins)) || ((num(b[1].wins) - num(b[1].losses)) - (num(a[1].wins) - num(a[1].losses))));
+        GRANK = new Map(ranked.map(([k], i) => [k, i + 1])); GTOTAL = ranked.length; GVER++;
+        onPlayerData();
+    }, () => {});
+}
+function gmeta(name) {
+    const k = guildKey(name);
+    if (!name || k === 'unknown') return null;
+    startGuilds();
+    return GM.get(k) || null;
+}
+function gstat(name) {
+    const m = gmeta(name), games = m ? num(m.games) : 0;
+    return { games, wins: m ? num(m.wins) : 0, losses: m ? num(m.losses) : 0, elo: m ? (Number(m.elo) || 0) : 0, rank: GRANK.get(guildKey(name)) || null, total: GTOTAL, isNew: games === 0 };
+}
+// сколько раз гильдии играли друг с другом и с каким счётом (с точки зрения первой)
+function h2h(a, b) {
+    const ma = gmeta(a), mb = gmeta(b);
+    const va = ma && ma.vs && ma.vs[guildKey(b)], vb = mb && mb.vs && mb.vs[guildKey(a)];
+    const w = va ? num(va.w) : (vb ? num(vb.l) : 0), l = va ? num(va.l) : (vb ? num(vb.w) : 0);
+    return { w, l, n: w + l };
+}
+// аватарка с купленной рамкой/анимацией; аноним (ТП за незаход) — без ника, аватарки и рамки
+function framed(p, cls) {
+    const anon = !!p && p.tp === 'anon';
+    const pid = !anon && p ? (p.pid || null) : null;
+    const d = pid ? pdata(pid) : null;
+    const pp = { id: pid || '__', equipped: (d && d.equipped) || {} };
+    const url = anon ? '' : validAv((d && d.avatar) || (p && p.avatar));
+    const ch = anon ? '?' : (((p && p.name) || '?').trim().charAt(0).toUpperCase() || '?');
+    const inner = url ? `<img class="${cls}" src="${esc(url)}" alt="">` : `<div class="${cls} ph">${esc(ch)}</div>`;
+    return `<span class="av-wrap ${cls === 'av' ? 'big' : ''} ${anon ? '' : cosClasses(pp)}">${inner}${anon ? '' : cosLayer(pp)}</span>`;
+}
+function avatarHtml(p) { return framed(p, 'av'); }
+
+function sideHtml(p, side) {
+    if (!p || !p.name) {
+        return `<div class="pc ${side} empty"><div class="av ph">?</div><div class="pi"><div class="pn">ИГРОК</div><div class="pg">не выбран</div></div></div>`;
+    }
+    const d = p.pid ? pdata(p.pid) : null, st = p.st || null;
+    const games = d ? d.games : (st ? num(st.games) : 0);
+    const elo = d && d.elo != null ? d.elo : (st && st.elo != null ? st.elo : (p.elo != null ? p.elo : 0));
+    const rank = st && st.rank ? st.rank : null;
+    const mrank = st && st.mrank ? st.mrank : null;
+    const streak = d ? d.streak : (st ? num(st.streak) : 0);
+    const cell = (cls, v, l) => `<div class="ps ${cls}"><b>${esc(v)}</b><span>${l}</span></div>`;
+    const mo = cell('mo', mrank ? '#' + mrank : '—', 'ЗА МЕСЯЦ'), sk = cell('st', streak ? '🔥 ' + streak : '—', 'СЕРИЯ');
+    let cells;
+    if (!p.pid) cells = cell('new', 'ГОСТЬ', 'РЕЙТИНГ') + mo + sk + cell('e', '—', 'ELO');
+    else if (!games) cells = cell('new', 'НОВИЧОК', 'РЕЙТИНГ') + mo + sk + cell('e', elo, 'ELO');
+    else cells = cell('rk', rank ? '#' + rank : '—', 'РЕЙТИНГ') + mo + sk + cell('e', elo, 'ELO');
+    const pp = { id: p.pid || '__', equipped: (d && d.equipped) || {} }, bn = p.pid ? bnClasses(pp) : '';
+    return `<div class="pc ${side} ${bn ? 'hasbn' : ''}">${bn ? `<i class="pcbn ${bn}">${bnLayer(pp)}</i>` : ''}${avatarHtml(p)}<div class="pi">
+        <div class="pn">${esc(p.name)}</div>
+        ${p.guild ? `<div class="pg">🏰 ${esc(p.guild)}</div>` : ''}
+        <div class="pst">${cells}</div>
+    </div></div>`;
+}
+
+function renderVs(root, vs) {
+    vs = vs || {};
+    root.dataset.visible = vs.visible ? '1' : '0';
+    const key = JSON.stringify([vs.left, vs.right, !!vs.visible]);
+    if (root._k === key) return;
+    root._k = key;
+    root.innerHTML = `<div class="vs">${sideHtml(vs.left, 'l')}<div class="vsb">VS</div>${sideHtml(vs.right, 'r')}</div>`;
+}
+
+// плашка гильдии: место в топе, игры, победы/поражения, ELO. Новая гильдия — «0 игр» и метка
+function guildPlate(name, side, def) {
+    const nm = name || def, st = name ? gstat(name) : null;
+    let tag = '', cells = '';
+    if (st) {
+        tag = st.isNew ? '<div class="gtag new">✨ НОВАЯ ГИЛЬДИЯ</div>' : '<div class="gtag">ГИЛЬДИЯ</div>';
+        cells = `<i class="rk">${st.rank ? '#' + st.rank : '—'}<small>${st.rank ? 'ТОП / ' + st.total : 'В ТОПЕ'}</small></i><i>${st.games}<small>ИГР</small></i>` +
+            `<i>${st.wins}:${st.losses}<small>П : ПОР</small></i><i class="el">${st.elo}<small>ELO</small></i>`;
+    }
+    return `<div class="gp ${side}"><div class="gn">${esc(nm)}</div>${tag}${cells ? `<div class="gstats">${cells}</div>` : ''}</div>`;
+}
+function renderScore(root, sc, teams) {
+    sc = sc || {}; teams = teams || {};
+    root.dataset.visible = sc.visible === false ? '0' : '1';
+    const l = Number(sc.l) || 0, r = Number(sc.r) || 0;
+    const inL = (teams.left || []).filter(p => !p.tp && !p.out && !p.arch).length, inR = (teams.right || []).filter(p => !p.tp && !p.out && !p.arch).length;
+    const round = Number(sc.round) || 1, size = parseInt(sc.format, 10) || 6;
+    const sk = JSON.stringify([sc.leftName, sc.rightName, sc.format, round > 1 ? 2 : 1, GVER, round > 1 ? [inL, inR] : 0]);
+    if (root._sk !== sk) {
+        root._sk = sk; root._prev = null;
+        let strip = '';
+        if (sc.leftName && sc.rightName) {
+            const h = h2h(sc.leftName, sc.rightName);
+            const meet = h.n ? `<span>⚔ ВСТРЕЧАЛИСЬ <b>${h.n}</b> ${plural(h.n, 'РАЗ', 'РАЗА', 'РАЗ')}</span><b>${h.w} : ${h.l}</b>` : '<span>⚔ ПЕРВАЯ ВСТРЕЧА ЭТИХ ГИЛЬДИЙ</span>';
+            strip = `<div class="h2h">${meet}${round > 1 ? `<span class="mu">|</span><span>🔥 НАЧАЛСЯ 2 ЭТАП · В ИГРЕ <b>${inL} : ${inR}</b></span>` : ''}</div>`;
+        }
+        root.innerHTML = `<div class="scw"><div class="gs">${guildPlate(sc.leftName, 'l', 'КОМАНДА 1')}
+            <div class="gmid"><div class="gnums"><div class="sn a">0</div><div class="ss">:</div><div class="sn b">0</div></div>
+            <div class="sm"><span>${esc(fmtText(sc.format))}</span>${round > 1 ? '<span class="stg">2 ЭТАП</span>' : ''}</div><div class="dots"></div></div>
+            ${guildPlate(sc.rightName, 'r', 'КОМАНДА 2')}</div>${strip}</div>`;
+    }
+    // шкала: обычная игра — одна шкала (левая заполняется слева, правая справа); 2 этап — гонка до 6 очков у каждой гильдии
+    const dots = root.querySelector('.dots');
+    if (dots) dots.innerHTML = round > 1
+        ? Array.from({ length: size }, (_, i) => `<u class="${i < l ? 'a' : ''}"></u>`).join('') + '<s></s>' + Array.from({ length: size }, (_, i) => `<u class="${i < r ? 'b' : ''}"></u>`).join('')
+        : Array.from({ length: size }, (_, i) => `<u class="${i < l ? 'a' : i >= size - r ? 'b' : ''}"></u>`).join('');
+    const prev = root._prev, pop = el => { el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop'); };
+    const A = root.querySelector('.sn.a'), B = root.querySelector('.sn.b');
+    if (A.textContent !== String(l)) { A.textContent = l; if (prev) pop(A); }
+    if (B.textContent !== String(r)) { B.textContent = r; if (prev) pop(B); }
+    root._prev = { l, r };
+}
+
+/* статистика: килы и хедшоты по каждому игроку, по каждой команде */
+function teamPanel(cls, name, list, prev, next, staged) {
+    list = list || [];
+    const tk = sumBy(list, 'k'), th = sumBy(list, 'hs');
+    const row = (p, n) => {
+        const key = cls + ':' + p.name;
+        const k = num(p.k), h = num(p.hs);
+        next[key] = { k, h };
+        const o = prev && prev[key];
+        const dd = p.pid && p.tp !== 'anon' ? pdata(p.pid) : null, bp = { id: p.pid || '__', equipped: (dd && dd.equipped) || {} }, bnc = dd ? bnClasses(bp) : '';
+        return `<div class="rw ${p.tp || p.out ? 'out' : ''}">${bnc ? `<i class="rwbn ${bnc}">${bnLayer(bp)}</i>` : ''}<span class="rwx">${n}</span><span class="rwn">${framed(p, 'mav')}<span class="rwt">${esc(p.tp === 'anon' ? 'Аноним' : p.name)}</span>${p.tp ? '<i class="tpm">ТП</i>' : ''}</span>
+            <b class="rwk ${o && o.k !== k ? 'pop' : ''}">${k}</b><b class="rwq ${o && o.h !== h ? 'pop' : ''}">${h}</b></div>`;
+    };
+    let rows;
+    if (!list.length) rows = '<div class="rwe">Игроки не добавлены</div>';
+    else if (staged) {
+        // 2 этап: сверху те, кто играет (с нуля), под ними все выбывшие и сыгравшие 1 игру — с их киллами
+        const act = list.filter(p => !p.arch && !p.tp && !p.out), lost2 = list.filter(p => !p.arch && (p.tp || p.out)), old = list.filter(p => p.arch);
+        rows = '<div class="rwd"><span>2 ЭТАП</span></div>' + (act.length || lost2.length ? act.concat(lost2).map((p, i) => row(p, i + 1)).join('') : '<div class="rwe">Игроки ещё не добавлены</div>') +
+            (old.length ? '<div class="rwd old"><span>1 ИГРА</span></div>' + old.map((p, i) => row(p, i + 1)).join('') : '');
+    } else rows = list.map((p, i) => row(p, i + 1)).join('');
+    return `<div class="tm ${cls}">
+        <div class="tmh"><div class="tmn">${esc(name || (cls === 'l' ? 'КОМАНДА 1' : 'КОМАНДА 2'))}</div>
+            <div class="tmt">K <b>${tk}</b> · HS <b class="h">${th}</b></div></div>
+        <div class="rwh"><span></span><span>ИГРОК</span><span>K</span><span>HS</span></div>
+        ${rows}
+    </div>`;
+}
+
+function renderStats(root, teams, sc, stats, side) {
+    teams = teams || {}; sc = sc || {}; stats = stats || {};
+    side = side || 'both';
+    root.dataset.visible = stats.visible === false ? '0' : '1';
+    const staged = (Number(sc.round) || 1) > 1;
+    const key = JSON.stringify([teams, sc.leftName, sc.rightName, side, staged]);
+    if (root._k === key) return;
+    root._k = key;
+    const next = {};
+    const prev = root._pst;
+    let html = '';
+    if (side !== 'right') html += teamPanel('l', sc.leftName, teams.left, prev, next, staged);
+    if (side !== 'left') html += teamPanel('r', sc.rightName, teams.right, prev, next, staged);
+    root.innerHTML = `<div class="stw">${html}</div>`;
+    root._pst = next;
+}
+
+/* ==========================================================
+   Режим выбирается ссылкой: ?obs=vs|score|stats&user=ИМЯ[&side=left|right]
+   ========================================================== */
+// расстояния между блоками (настраивает стример в кабинете): между гильдиями, между командами в статистике и между VS-карточками
+const UI_DEF = { gapScore: 24, gapStats: 16, gapVs: 18 };
+function applyUi(el, ui) {
+    ui = { ...UI_DEF, ...(ui || {}) };
+    const c = v => Math.max(0, Math.min(800, Number(v) || 0));
+    el.style.setProperty('--g-score', c(ui.gapScore) + 'px');
+    el.style.setProperty('--g-stats', c(ui.gapStats) + 'px');
+    el.style.setProperty('--g-vs', c(ui.gapVs) + 'px');
+}
+const params = new URLSearchParams(location.search);
+const obsMode = params.get('obs');
+
+if (obsMode) {
+    document.body.classList.add('overlay');
+    const root = $('overlay');
+    const user = params.get('user') || '';
+    const side = params.get('side') || 'both';
+    if (user) {
+        let last = {}, t;
+        const draw = () => {
+            root.dataset.visible = '0';
+            applyUi(root, last.ui);
+            if (obsMode === 'vs') renderVs(root, last.vs);
+            else if (obsMode === 'stats') renderStats(root, last.teams, last.score, last.stats, side);
+            else renderScore(root, last.score, last.teams);
+        };
+        onPlayerData = () => { clearTimeout(t); t = setTimeout(() => { root._k = null; root._sk = null; draw(); }, 120); };
+        db.collection('live_match').doc(user).onSnapshot(doc => { last = doc.exists ? doc.data() : {}; draw(); });
+    }
+} else {
+    initCabinet();
+}
+
+/* ==========================================================
+   Кабинет стримера
+   ========================================================== */
+function initCabinet() {
+    const STORE = 'dilenow_streamer_key';
+    let session = null;
+    let players = [];
+    const sel = { left: null, right: null };
+    const state = {
+        vs: { visible: false, left: null, right: null },
+        score: { leftName: '', rightName: '', l: 0, r: 0, format: '6x6', round: 1, visible: true },
+        teams: { left: [], right: [] },
+        stats: { visible: true },
+        ui: { ...UI_DEF },
+        journal: [],
+        duelLog: []
+    };
+
+    const matchRef = () => db.collection('live_match').doc(session.name);
+    const save = partial => matchRef().set(partial, { merge: true })
+        .catch(e => toast('Ошибка записи: ' + e.message, 'error'));
+
+    let teamsTimer;
+    function pushTeams() {
+        clearTimeout(teamsTimer);
+        teamsTimer = setTimeout(() => save({ teams: state.teams, duelLog: state.duelLog }), 200);
+        refreshAll();
+    }
+
+    /* ---------- вход / выход ---------- */
+    const toEmail = id => [...String(id).trim().toLowerCase()].map(c => /[a-z0-9]/.test(c) ? c : '_' + c.charCodeAt(0).toString(16) + '_').join('') + '@elo-sns.app';
+    let busy = false, live = false, inv = {}, invUnsub = null, liveUnsub = null;
+
+    auth.onAuthStateChanged(u => {
+        $('acc-box').hidden = !!u;
+        $('login-msg').textContent = u ? 'Профиль найден. Введи ключ стримера.' : 'Войди в свой профиль и введи ключ от администратора. Доступ работает только с тем профилем, которому выдан ключ.';
+        const saved = localStorage.getItem(STORE);
+        if (u && saved && !session) login(saved, true);
+    });
+
+    async function login(key, silent) {
+        if (busy || session) return;
+        if (!key || key.includes('/')) { if (!silent) toast('Введите ключ!', 'error'); return; }
+        busy = true;
+        try {
+            if (!auth.currentUser) {
+                const id = $('acc-user').value.trim().toLowerCase().replace('@', '');
+                const pw = $('acc-pass').value;
+                if (!id || !pw) { toast('Введи юзернейм и пароль профиля', 'error'); return; }
+                try { await auth.signInWithEmailAndPassword(toEmail(id), pw); }
+                catch (e) { toast('Неверный юзернейм или пароль профиля (если ещё не входил на сайт после обновления — зайди туда один раз)', 'error'); return; }
+            }
+            const u = auth.currentUser;
+            let snap = null;
+            try { snap = await db.collection('streamers').doc(key).get(); } catch (e) {}
+            if (!snap || !snap.exists || snap.data().playerUid !== u.uid) {
+                localStorage.removeItem(STORE);
+                if (!silent) toast('Нет доступа: ключ не существует или выдан другому профилю', 'error');
+                return;
+            }
+            session = { key, name: snap.data().name, pid: snap.data().playerId, uid: u.uid };
+            localStorage.setItem(STORE, key);
+
+            await Promise.all([loadPlayers(), loadState()]);
+            $('login').hidden = true;
+            $('panel').hidden = false;
+            $('btn-logout').hidden = false;
+            $('btn-live').hidden = false;
+            $('hd-avl').hidden = false;
+
+            const base = location.href.split('?')[0].split('#')[0];
+            const un = encodeURIComponent(session.name);
+            $('url-vs').value = `${base}?obs=vs&user=${un}`;
+            $('url-score').value = `${base}?obs=score&user=${un}`;
+            $('url-stats').value = `${base}?obs=stats&user=${un}`;
+            $('url-stats-l').value = `${base}?obs=stats&side=left&user=${un}`;
+            $('url-stats-r').value = `${base}?obs=stats&side=right&user=${un}`;
+            $('dl-players').innerHTML = players.map(p => `<option value="${esc(p.name)}"></option>`).join('');
+
+            // состояние стрима и аватар
+            liveUnsub = db.collection('streamer_public').doc(session.name).onSnapshot(d => {
+                const x = d.data() || {};
+                setLive(!!x.isLive);
+                state.vkUrl = x.vkUrl || ''; if (document.activeElement !== $('inp-vk')) $('inp-vk').value = state.vkUrl;
+                const me = players.find(p => p.id === session.pid);
+                const av = x.avatar || (me && me.avatar) || '';
+                $('hd-av').src = av || 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="38" height="38"><rect width="38" height="38" fill="#150f2e"/><text x="19" y="26" font-size="20" text-anchor="middle" fill="#22e3ff">?</text></svg>');
+            });
+            // подтверждения игроков
+            invUnsub = db.collection('match_invites').where('streamer', '==', session.name).onSnapshot(sn => {
+                inv = {}; sn.docs.forEach(d => { inv[d.data().playerId] = d.data(); });
+                renderTeams();
+            }, e => console.error(e));
+
+            enrichVs();
+            fillInputs();
+            refreshAll();
+            beat();
+            toast('Добро пожаловать, ' + session.name + '!', 'success');
+        } finally { busy = false; }
+    }
+
+    async function logout() {
+        localStorage.removeItem(STORE);
+        location.reload();
+    }
+
+    function setLive(on) {
+        live = on;
+        $('live-pill').hidden = !on;
+        $('live-pill').textContent = 'LIVE · ' + (session ? session.name : '');
+        $('btn-live').textContent = on ? '⏹ Завершить стрим' : '🔴 Начать стрим';
+        $('btn-live').className = 'btn sm ' + (on ? 'pink' : 'green');
+    }
+    $('btn-live').addEventListener('click', async () => {
+        try {
+            await db.collection('streamer_public').doc(session.name).update({ isLive: !live });
+            toast(!live ? 'Стрим начат' : 'Стрим завершён', 'success');
+        } catch (e) { toast('Не удалось: ' + e.message, 'error'); }
+    });
+
+    function fileToAvatar(file, size = 240) {
+        return new Promise((res, rej) => {
+            const img = new Image(), url = URL.createObjectURL(file);
+            img.onload = () => {
+                const m = Math.min(img.width, img.height), c = document.createElement('canvas');
+                c.width = c.height = size;
+                c.getContext('2d').drawImage(img, (img.width - m) / 2, (img.height - m) / 2, m, m, 0, 0, size, size);
+                URL.revokeObjectURL(url); res(c.toDataURL('image/jpeg', 0.82));
+            };
+            img.onerror = () => rej(new Error('Не удалось прочитать картинку'));
+            img.src = url;
+        });
+    }
+    $('my-av-file').addEventListener('change', async e => {
+        const f = e.target.files[0]; if (!f || !session) return;
+        try {
+            const av = await fileToAvatar(f);
+            await db.collection('players').doc(session.pid).update({ avatarUrl: av });
+            await db.collection('streamer_public').doc(session.name).update({ avatar: av });
+            toast('Аватарка обновлена', 'success');
+        } catch (err) { toast('Не удалось: ' + err.message, 'error'); }
+        e.target.value = '';
+    });
+
+    // приглашение игроку: он сам подтверждает в своём профиле, что играет
+    async function ensureInvite(p) {
+        const cur = inv[p.id];
+        if (cur && cur.status !== 'declined' && Date.now() - cur.ts < 12 * 3600e3) return;
+        const ref = db.collection('match_invites').doc(session.name + '__' + p.id);
+        try {
+            if (cur) await ref.delete();
+            await ref.set({ streamer: session.name, playerId: p.id, playerUid: p.uid, status: 'pending', ts: Date.now() });
+            db.collection('notifications').add({
+                toUid: p.uid, to: p.id, from: session.pid, fromUid: session.uid, type: 'invite', ts: Date.now(), read: false,
+                text: '🎮 Стример ' + session.name + ' добавил тебя в матч — подтверди участие в профиле'
+            }).catch(() => {});
+        } catch (e) { toast('Не удалось отправить подтверждение: ' + e.message, 'error'); }
+    }
+
+    let rankTotal = 0;
+    const mapPlayer = d => {
+        const x = d.data();
+        const av = x.avatarUrl && !String(x.avatarUrl).startsWith('blob:') && !String(x.avatarUrl).includes('placeholder.com') ? x.avatarUrl : '';
+        return { id: d.id, uid: x.uid || null, name: x.displayName || x.username || d.id, guild: x.guild && x.guild !== '-' ? x.guild : '', avatar: av,
+            elo: x.elo ?? null, games: Number(x.totalGames) || 0, wins: Number(x.totalWins ?? x.seasonWins) || 0, losses: Number(x.totalLosses) || 0,
+            kills: Number(x.totalKills) || 0, banned: !!x.banned, rank: null, mrank: null, streak: Number(x.streak) || 0,
+            mOk: x.monthKey === periodKey() && (Number(x.mGames) || 0) > 0, mElo: Number(x.mElo) || 0, mWins: Number(x.mWins) || 0, mKills: Number(x.mKills) || 0 };
+    };
+    // место в рейтинге «за всё время» — так же, как на сайте: ELO → победы → меньше поражений → килы
+    function computeRanks() {
+        const played = players.filter(p => !p.banned && p.games > 0)
+            .sort((a, b) => ((b.elo || 0) - (a.elo || 0)) || (b.wins - a.wins) || (a.losses - b.losses) || (b.kills - a.kills));
+        players.forEach(p => { p.rank = null; });
+        played.forEach((p, i) => { p.rank = i + 1; });
+        rankTotal = played.length;
+        // место «за месяц» — как на сайте: ELO месяца → победы месяца → килы месяца
+        players.forEach(p => { p.mrank = null; });
+        players.filter(p => !p.banned && p.mOk).sort((a, b) => (b.mElo - a.mElo) || (b.mWins - a.mWins) || (b.mKills - a.mKills)).forEach((p, i) => { p.mrank = i + 1; });
+    }
+    const stOf = p => p ? { elo: p.elo ?? 0, games: p.games, wins: p.wins, losses: p.losses, rank: p.rank || null, total: rankTotal, mrank: p.mrank || null, streak: p.streak || 0 } : null;
+    const sameSt = (a, b) => !a && !b || (a && b && ['elo', 'games', 'wins', 'losses', 'rank', 'total', 'mrank', 'streak'].every(k => (a[k] ?? null) === (b[k] ?? null)));
+    // карточки VS на стриме обновляются сами, когда у игрока меняется рейтинг / ELO / число матчей
+    function enrichVs() {
+        const ch = {};
+        ['left', 'right'].forEach(side => {
+            const v = state.vs[side]; if (!v || !v.pid) return;
+            const p = players.find(x => x.id === v.pid); if (!p) return;
+            const st = stOf(p);
+            if (!sameSt(st, v.st)) { v.st = st; v.elo = p.elo ?? null; ch[side] = v; }
+        });
+        if (Object.keys(ch).length) { save({ vs: ch }); refreshAll(); }
+    }
+    function loadPlayers() {
+        return new Promise(res => {
+            let first = true;
+            db.collection('players').onSnapshot(sn => {
+                players = sn.docs.map(mapPlayer).sort((a, b) => a.name.localeCompare(b.name, 'ru'));
+                computeRanks();
+                if ($('dl-players')) $('dl-players').innerHTML = players.map(p => `<option value="${esc(p.name)}"></option>`).join('');
+                if (first) { first = false; res(); return; }
+                enrichVs(); ['left', 'right'].forEach(vsInfo);
+            }, () => { if (first) { first = false; players = []; res(); } });
+        });
+    }
+
+    async function loadState() {
+        try {
+            const doc = await matchRef().get();
+            if (doc.exists) {
+                const d = doc.data();
+                Object.assign(state.vs, d.vs || {});
+                Object.assign(state.score, d.score || {});
+                Object.assign(state.stats, d.stats || {});
+                Object.assign(state.ui, d.ui || {});
+                state.teams.left = Array.isArray(d.teams && d.teams.left) ? d.teams.left : [];
+                state.teams.right = Array.isArray(d.teams && d.teams.right) ? d.teams.right : [];
+                state.journal = d.journal || [];
+                state.duelLog = Array.isArray(d.duelLog) ? d.duelLog : [];
+                state.score.round = (num(state.score.round) || 1) > 1 ? 2 : 1;   // существует только 2 этап
+                pairLeftovers();                                                  // старым составам тоже расставляем пары 1 на 1
+            }
+        } catch (e) {}
+    }
+
+    /* ---------- вкладки ---------- */
+    $('tabs').addEventListener('click', e => {
+        const b = e.target.closest('[data-tab]');
+        if (!b) return;
+        document.querySelectorAll('#tabs button').forEach(x => x.classList.toggle('on', x === b));
+        document.querySelectorAll('.tabp').forEach(x => x.classList.toggle('on', x.id === 'tab-' + b.dataset.tab));
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+
+    /* ---------- заполнение и обновление интерфейса ---------- */
+    function fillInputs() {
+        const s = state.score;
+        $('t-left').value = s.leftName || '';
+        $('t-right').value = s.rightName || '';
+        $('sc-l').value = s.l || 0;
+        $('sc-r').value = s.r || 0;
+        $('sc-format').value = ['6x6', '8x8', '10x10', '12x12'].includes(s.format) ? s.format : '6x6';
+        $('ui-gap-score').value = state.ui.gapScore; $('ui-gap-stats').value = state.ui.gapStats; $('ui-gap-vs').value = state.ui.gapVs;
+        $('inp-vk').value = state.vkUrl || '';
+        ['left', 'right'].forEach(side => {
+            const p = state.vs[side];
+            $(side + '-search').value = p ? p.name : '';
+            $(side + '-guild').value = p ? (p.guild || '') : '';
+            sel[side] = p ? (players.find(x => x.name === p.name) || { id: 'x', ...p }) : null;
+            renderList(side); vsInfo(side);
+        });
+    }
+
+    let pdTimer;
+    onPlayerData = () => {
+        clearTimeout(pdTimer);
+        pdTimer = setTimeout(() => { ['pv-vs', 'pv-stats'].forEach(id => { $(id)._k = null; }); $('pv-score')._sk = null; refreshAll(); }, 120);
+    };
+    function refreshAll() {
+        renderVs($('pv-vs'), state.vs);
+        renderScore($('pv-score'), state.score, state.teams);
+        renderStats($('pv-stats'), state.teams, state.score, state.stats, 'both');
+        ['pv-vs', 'pv-score', 'pv-stats'].forEach(id => applyUi($(id), state.ui));
+        renderTeams(); renderChips(); renderStages();
+        $('btn-vs-toggle').textContent = state.vs.visible ? '🙈 Скрыть VS' : '👁 Показать VS';
+        $('btn-sc-toggle').textContent = state.score.visible === false ? '👁 Показать табло' : '🙈 Скрыть табло';
+        $('btn-stats-toggle').textContent = state.stats.visible === false ? '👁 Показать статистику' : '🙈 Скрыть статистику';
+        renderJournal();
+    }
+
+    /* ---------- команды и игроки ---------- */
+    const teamSize = () => parseInt(state.score.format, 10) || 6;
+    const inGame = p => !p.tp && !p.out && !p.arch;
+
+    /* ---------- пары 1 на 1: игрок на одной стороне играет против игрока на другой ----------
+       Новый игрок автоматически встаёт в пару с первым свободным игроком напротив (1-й слева против 1-го справа,
+       2-й против 2-го…). Пару можно сменить кнопкой «⚔ vs …» у игрока. Пары уходят в журнал и в статистику игроков. */
+    const newRid = () => Math.random().toString(36).slice(2, 10);
+    const allRows = () => [...state.teams.left, ...state.teams.right];
+    const byRid = rid => rid ? allRows().find(q => q.rid === rid) : null;
+    const partnerOf = p => { const q = byRid(p.vs); return q && q.vs === p.rid ? q : null; };
+    function unlink(p) { const q = byRid(p.vs); if (q && q.vs === p.rid) q.vs = ''; p.vs = ''; }
+    const decided = p => !!(p.tp || p.out);                 // проиграл дуэль: выбыл (✖) или получил ТП
+    const sumPrev = (p, f) => (p.prev || []).reduce((a, d) => a + num(d[f]), 0);
+    const duelSide = p => ({ name: p.name, pid: p.pid || null, guest: !!p.guest, k: p.tp ? 0 : num(p.k), hs: p.tp ? 0 : num(p.hs), ace: p.tp ? 0 : num(p.ace), tp: p.tp || '', out: !!p.out });
+    // Закончившаяся дуэль уходит в архив (duelLog), килы победителя переезжают в «прошлые дуэли» (p.prev — видно только в кабинете),
+    // а его счётчики обнуляются — дальше он играет следующую дуэль с нуля.
+    function settle(x) {
+        const q = partnerOf(x);
+        if (!q || decided(x) === decided(q)) return;       // дуэль ещё не решена — ничего не архивируем
+        const win = decided(x) ? q : x, lose = decided(x) ? x : q;
+        const [L, R] = state.teams.left.includes(win) ? [win, lose] : [lose, win];
+        state.duelLog.push({ stage: win.arch ? 1 : (num(state.score.round) || 1), l: duelSide(L), r: duelSide(R) });
+        (win.prev = win.prev || []).push({ vs: lose.name, k: num(win.k), hs: num(win.hs), ace: num(win.ace), fk: lose.tp ? 0 : num(lose.k), fhs: lose.tp ? 0 : num(lose.hs), tp: lose.tp || '' });
+        win.k = 0; win.hs = 0; win.ace = 0;
+        lose.settled = true;
+        unlink(win);
+    }
+    function link(a, b) { settle(a); settle(b); unlink(a); unlink(b); a.vs = b.rid; b.vs = a.rid; }
+    // проигравший выбыл → победитель сразу встаёт против следующего свободного игрока с его стороны (4 против 1: единственный играет по очереди со всеми)
+    function advance(loserSide, loser) {
+        const winner = partnerOf(loser);
+        if (!winner || !inGame(winner)) return null;
+        const next = state.teams[loserSide].find(x => x !== loser && !x.arch && !x.settled && inGame(x) && !partnerOf(x));
+        if (!next) return null;
+        link(winner, next);
+        return { winner, next };
+    }
+    function pairLeftovers() {
+        allRows().forEach(p => { if (!p.rid) p.rid = newRid(); });
+        const free = list => list.filter(p => !p.arch && !p.settled && !partnerOf(p));
+        const L = free(state.teams.left), R = free(state.teams.right);
+        for (let i = 0; i < Math.min(L.length, R.length); i++) link(L[i], R[i]);
+    }
+    const pairName = p => { const q = partnerOf(p); return q ? q.name : ''; };            // игрок ещё в игре: не выбыл в дуэли и не получил ТП
+
+    const statusChip = p => {
+        if (p.anon) return '';
+        if (p.guest) return '<span class="chip" title="Не в рейтинге — статистика не начисляется">гость</span>';
+        const i = inv[p.pid];
+        if (!i) return '<span class="chip l">нет приглашения</span>';
+        if (i.status === 'confirmed') return Date.now() - i.ts < 12 * 3600e3 ? '<span class="chip w">✅ подтвердил</span>' : '<span class="chip l">⌛ устарело</span>';
+        if (i.status === 'declined') return '<span class="chip l">✕ отказал</span>';
+        return '<span class="chip g">⏳ ждёт подтверждения</span>';
+    };
+
+    function renderTeams() {
+        const staged = (num(state.score.round) || 1) > 1;
+        ['left', 'right'].forEach(side => {
+            const list = state.teams[side];
+            $('tcount-' + side).textContent = `${staged ? '2 этап · ' : ''}в игре ${list.filter(inGame).length} · всего ${list.length} / ${teamSize()}`;
+            $('tsum-' + side).innerHTML =
+                `<span class="chip c">Килы: ${sumBy(list, 'k')}</span><span class="chip g">Хедшоты: ${sumBy(list, 'hs')}</span>` +
+                (list.some(p => (p.prev || []).length) ? `<span class="chip" title="с учётом прошлых дуэлей, в OBS их нет">📦 Всего киллов: ${sumBy(list, 'k') + list.reduce((a, p) => a + sumPrev(p, 'k'), 0)}</span>` : '') +
+                `<span class="chip">HS%: ${sumBy(list, 'k') ? Math.round(sumBy(list, 'hs') / sumBy(list, 'k') * 100) : 0}</span>` +
+                `<span class="chip">🎯 Эйсы: ${sumBy(list, 'ace')}</span>`;
+            const ctr = (st, cls, v) => `<div class="ctr ${cls}"><button data-st="${st}" data-side="${side}" data-i="@I" data-d="-1">−</button><b>${num(v)}</b><button class="pp" data-st="${st}" data-side="${side}" data-i="@I" data-d="1">+</button></div>`;
+            const rowHtml = (p, i) => `<div class="prow ${p.out ? 'out' : ''}">
+                        <div class="pname">${esc(p.name)} ${statusChip(p)}${p.tp ? ` <span class="chip l">⚠ ${esc((TPT[p.tp] || {}).label || 'ТП')}</span>` : ''}${p.anon ? '' : `<button class="tpb ${p.tp ? 'on' : ''}" data-tpo="${side}" data-i="${i}" title="Техническое поражение">ТП</button>`}${p.tp ? '' : `<button class="lostb ${p.out ? 'on' : ''}" data-lost="${side}" data-i="${i}" title="${p.out ? 'Вернуть в игру (убрать очко сопернику)' : 'Проиграл дуэль: выбывает, сопернику +1'}">${p.out ? '↩ выбыл — вернуть' : '✖ проиграл дуэль'}</button>`}${(p.prev || []).length ? `<div class="prevd">📜 Прошлые дуэли (в OBS не видны): ${p.prev.map(d => `vs ${esc(d.vs)} — <b>${num(d.k)}K</b>/${num(d.hs)}HS${d.fk !== undefined ? ` <span class="muted">(у соперника ${num(d.fk)}K)</span>` : ''}${d.tp ? ' ТП' : ''}`).join(' · ')} · <b>всего с прошлыми: ${num(p.k) + sumPrev(p, 'k')}K / ${num(p.hs) + sumPrev(p, 'hs')}HS</b></div>` : ''}<div><button class="pairb ${pairName(p) ? '' : 'none'}" data-pair="${side}" data-i="${i}" title="С кем он играет 1 на 1 — нажми, чтобы сменить">⚔ ${pairName(p) ? 'vs ' + esc(pairName(p)) : 'выбрать соперника'}</button></div></div>
+                        ${ctr('k', 'k', p.k).replace(/@I/g, i)}${ctr('hs', 'h', p.hs).replace(/@I/g, i)}${ctr('ace', 'a', p.ace).replace(/@I/g, i)}
+                        <button class="rm" data-rm="${side}" data-i="${i}" title="Убрать игрока">✕</button>
+                    </div>`;
+            let html;
+            if (!list.length) html = '<div class="none">Добавь игроков команды — выбери из списка зарегистрированных</div>';
+            else if (staged) {
+                // 2 этап: сверху играющие (с нуля), под ними выбывшие и сыгравшие 1 игру — киллы сохранены
+                const idx = list.map((p, i) => i), act = idx.filter(i => inGame(list[i])), lost2 = idx.filter(i => !list[i].arch && !inGame(list[i])), old = idx.filter(i => list[i].arch);
+                const arch = (p, i) => `<div class="prow ${p.out || p.tp ? 'out' : ''}"><div class="pname">${esc(p.name)}${pairName(p) ? ` <span class="pairs">⚔ vs ${esc(pairName(p))}</span>` : ''}${p.tp ? ` <span class="chip l">⚠ ${esc((TPT[p.tp] || {}).label || 'ТП')}</span>` : p.out ? ' <span class="chip l">✖ проиграл</span>' : ' <span class="chip w">🏆 победил</span>'}</div>
+                        <div class="ctr"><b>${num(p.k)}</b></div><div class="ctr"><b>${num(p.hs)}</b></div><div class="ctr"><b>${num(p.ace)}</b></div>
+                        <button class="rm" data-rm="${side}" data-i="${i}" title="Убрать игрока">✕</button></div>`;
+                html = '<div class="stgdiv">2 ЭТАП</div>' +
+                    (act.length || lost2.length ? act.concat(lost2).map(i => rowHtml(list[i], i)).join('') : '<div class="stgwait">Добавь игроков 2 этапа — они появятся здесь</div>') +
+                    (old.length ? '<div class="stgdiv old">1 ИГРА</div>' + old.map(i => arch(list[i], i)).join('') : '');
+            } else html = list.map((p, i) => rowHtml(p, i)).join('');
+            // не трогаем DOM, если список не изменился — иначе клик по кнопке теряется при перерисовке
+            if ($('tl-' + side)._h !== html) { $('tl-' + side)._h = html; $('tl-' + side).innerHTML = html; }
+        });
+    }
+
+    async function addPlayer(side) {
+        const input = $('add-' + side);
+        const name = input.value.trim();
+        if (!name) return toast('Впиши ник игрока', 'error');
+        const reg = players.find(p => p.name.toLowerCase() === name.toLowerCase() || p.id === name.toLowerCase().replace('@', ''));
+        const same = p => (reg && reg.uid) ? p.pid === reg.id : p.name.toLowerCase() === name.toLowerCase();
+
+        // Игрок уже в составе (например, выбыл в 1 игре) — это не ошибка: он заходит заново с нуля, дублей не будет.
+        const had = [];
+        const staged = (num(state.score.round) || 1) > 1;
+        ['left', 'right'].forEach(sd => state.teams[sd].forEach(p => { if (same(p) && !p.arch) had.push(p); }));
+        if (staged && had.some(inGame)) return toast(`«${name}» уже в игре во 2 этапе`, 'error');
+        if (had.length) {
+            const used = had.some(p => num(p.k) || num(p.hs) || num(p.ace) || p.tp);
+            if (used && !confirm(`«${name}» уже в составе со статистикой (K ${num(had[0].k)} · HS ${num(had[0].hs)}${had[0].tp ? ' · ТП' : ''}).\nДобавить заново с нуля? (Если он просто выбыл в дуэли — не добавляй его снова, а отметь «✖ проиграл дуэль».)`)) return;
+            had.forEach(unlink);
+            ['left', 'right'].forEach(sd => { state.teams[sd] = state.teams[sd].filter(p => !same(p) || p.arch); });
+        }
+        const list = state.teams[side];
+        if (list.filter(p => !p.arch).length >= 12) return toast('Максимум 12 игроков в команде', 'error');
+
+        if (reg && reg.uid) {
+            list.push({ name: reg.name, pid: reg.id, k: 0, hs: 0, ace: 0, rid: newRid() });
+            await ensureInvite(reg);
+            toast(staged ? 'Игрок добавлен во 2 этап' : 'Игроку отправлено подтверждение — пусть подтвердит в профиле', 'success');
+        } else {
+            const why = reg ? 'ещё не активировал профиль на сайте' : 'не зарегистрирован на сайте';
+            if (!had.length && !confirm(`«${name}» ${why}. Добавить как ГОСТЯ? Статистика ему не начислится, чужой ник в рейтинг не попадёт.`)) return;
+            list.push({ name, guest: true, k: 0, hs: 0, ace: 0, rid: newRid() });
+        }
+        input.value = '';
+        pairLeftovers();
+        pushTeams();
+        input.focus();
+    }
+
+    function changeStat(side, i, field, d) {
+        const p = state.teams[side][i];
+        if (!p) return;
+        if (p.tp) return toast('У игрока ТП — килы и хедшоты не учитываются. Сними ТП, чтобы считать', 'error');
+        p[field] = Math.max(0, num(p[field]) + d);
+        if (field === 'hs' && $('opt-hskill').checked) p.k = Math.max(0, num(p.k) + d);
+        pushTeams();
+    }
+
+    ['left', 'right'].forEach(side => {
+        $('add-' + side).addEventListener('keydown', e => { if (e.key === 'Enter') addPlayer(side); });
+    });
+
+    /* ---------- выбор игроков (VS) ---------- */
+    function renderList(side) {
+        const q = $(side + '-search').value.trim().toLowerCase();
+        const items = players.filter(p => !q || p.name.toLowerCase().includes(q));
+        $(side + '-list').innerHTML = items.length
+            ? items.map(p => `<button type="button" class="pl ${sel[side] && sel[side].id === p.id ? 'on' : ''}" data-id="${esc(p.id)}">
+                    ${p.avatar ? `<img class="mi" src="${esc(p.avatar)}" alt="">` : `<div class="mi">${esc(p.name.charAt(0).toUpperCase())}</div>`}
+                    <span>${esc(p.name)}</span></button>`).join('')
+            : '<div class="none">Никого не найдено — впиши ник и нажми «Новый»</div>';
+    }
+
+    // подсказка под полем: что увидят зрители на карточке выбранного игрока
+    function vsInfo(side) {
+        const q = $(side + '-search').value.trim(), box = $('vi-' + side);
+        if (!q) { box.innerHTML = ''; return; }
+        const p = players.find(x => x.name.toLowerCase() === q.toLowerCase());
+        box.innerHTML = !p ? `«${esc(q)}» не найден на сайте — будет ГОСТЬ без рейтинга`
+            : p.games ? `<b>${esc(p.name)}</b> · место в рейтинге <b>#${p.rank || '—'}</b> из ${rankTotal} · матчей <b>${p.games}</b> · ELO <b>${p.elo ?? 0}</b>`
+            : `<b>${esc(p.name)}</b> — новичок: <b>0</b> матчей, в рейтинг ещё не попал`;
+    }
+    // игроки состава одним нажатием — чтобы не искать вручную
+    function renderChips() {
+        ['left', 'right'].forEach(side => {
+            const names = state.teams[side].filter(p => !p.anon);
+            $('rc-' + side).innerHTML = names.map(p => `<button type="button" data-rc="${side}" data-name="${esc(p.name)}">${esc(p.name)}</button>`).join('');
+        });
+    }
+    ['left', 'right'].forEach(side => {
+        $(side + '-search').addEventListener('input', () => { renderList(side); vsInfo(side); });
+        $(side + '-list').addEventListener('click', e => {
+            const b = e.target.closest('.pl');
+            if (!b) return;
+            const p = players.find(x => x.id === b.dataset.id);
+            if (!p) return;
+            sel[side] = p;
+            $(side + '-search').value = p.name;          // гильдию НЕ подставляем: игрок мог перейти — вписывается вручную
+            renderList(side); vsInfo(side);
+        });
+    });
+
+    document.addEventListener('click', e => {
+        const st = e.target.closest('[data-st]');
+        if (st) return changeStat(st.dataset.side, Number(st.dataset.i), st.dataset.st, Number(st.dataset.d));
+
+        const rm = e.target.closest('[data-rm]');
+        if (rm) { const rp = state.teams[rm.dataset.rm][Number(rm.dataset.i)]; if (rp) unlink(rp); state.teams[rm.dataset.rm].splice(Number(rm.dataset.i), 1); pairLeftovers(); return pushTeams(); }
+        const pr = e.target.closest('[data-pair]');
+        if (pr) return openPair(pr.dataset.pair, Number(pr.dataset.i));
+
+        const ad = e.target.closest('[data-addp]');
+        if (ad) return addPlayer(ad.dataset.addp);
+
+        const clr = e.target.closest('[data-clr]');
+        if (clr) {
+            state.teams[clr.dataset.clr].forEach(p => { p.k = 0; p.hs = 0; p.ace = 0; });
+            return pushTeams();
+        }
+
+        const rc = e.target.closest('[data-rc]');
+        if (rc) {
+            const side = rc.dataset.rc, nm = rc.dataset.name;
+            $(side + '-search').value = nm;
+            sel[side] = players.find(x => x.name === nm) || null;
+            if (!$(side + '-guild').value.trim()) $(side + '-guild').value = (side === 'left' ? state.score.leftName : state.score.rightName) || '';
+            renderList(side); vsInfo(side);
+            return;
+        }
+        const lo = e.target.closest('[data-lost]');
+        if (lo) return toggleOut(lo.dataset.lost, Number(lo.dataset.i));
+        if (e.target.closest('[data-newmatch]')) return newMatch();
+        if (e.target.closest('[data-nextstage]')) return nextStage();
+        const an = e.target.closest('[data-anon]');
+        if (an) return addAnon(an.dataset.anon);
+
+        const nw = e.target.closest('[data-new]');
+        if (nw) {
+            const side = nw.dataset.new;
+            const name = $(side + '-search').value.trim();
+            if (!name) return toast('Впиши ник в поле поиска', 'error');
+            sel[side] = { id: 'new', name, guild: '', avatar: '', elo: null };
+            renderList(side);
+            return toast('Гость «' + name + '» выбран — нажми «Применить»');
+        }
+        const ap = e.target.closest('[data-apply]');
+        if (ap) return applySide(ap.dataset.apply);
+
+        const adj = e.target.closest('[data-adj]');
+        if (adj) return adjust(adj.dataset.adj, Number(adj.dataset.d));
+
+        const cp = e.target.closest('[data-copy]');
+        if (cp) return copyText($(cp.dataset.copy).value);
+    });
+
+    function applySide(side) {
+        const typed = $(side + '-search').value.trim();
+        let p = sel[side];
+        if (!p || p.name !== typed) {
+            p = players.find(x => x.name.toLowerCase() === typed.toLowerCase()) || (typed ? { name: typed, guild: '', avatar: '', elo: null } : null);
+        }
+        if (!p || !p.name) return toast('Выберите игрока', 'error');
+        const base = players.find(x => x.name.toLowerCase() === p.name.toLowerCase()) || p;
+        const data = {
+            name: p.name,
+            guild: $(side + '-guild').value.trim(),
+            pid: (base.id && base.id !== 'new' && base.id !== 'x') ? base.id : null,
+            avatar: base.avatar || '',
+            elo: base.elo ?? null,
+            st: (base.id && base.id !== 'new' && base.id !== 'x' && players.some(x => x.id === base.id)) ? stOf(players.find(x => x.id === base.id)) : null
+        };
+        state.vs[side] = data;
+        state.vs.visible = true;
+        save({ vs: { [side]: data, visible: true } });
+        refreshAll();
+        toast('Применено', 'success');
+    }
+
+    $('btn-vs-toggle').addEventListener('click', () => {
+        state.vs.visible = !state.vs.visible;
+        save({ vs: { visible: state.vs.visible } });
+        refreshAll();
+    });
+
+    $('btn-swap').addEventListener('click', () => {
+        const l = state.vs.left, r = state.vs.right;
+        state.vs.left = r; state.vs.right = l;
+        save({ vs: { left: r || null, right: l || null } });
+        fillInputs();
+        refreshAll();
+    });
+
+    /* ---------- счёт ---------- */
+    function pushScore(extra) {
+        const s = state.score;
+        save({ score: { leftName: s.leftName, rightName: s.rightName, l: s.l, r: s.r, format: s.format, round: s.round, visible: s.visible, finished: !!s.finished, ...extra } });
+        refreshAll();
+    }
+
+    function adjust(side, d) {
+        state.score[side] = Math.max(0, (Number($('sc-' + side).value) || 0) + d);
+        $('sc-' + side).value = state.score[side];
+        if (d < 0) rebase();
+        pushScore();
+        if (d > 0) checkAutoStage();            // +1 очко: проверяем, не закончился ли этап
+    }
+
+    // ввод числа руками — только новая точка отсчёта, этап автоматически не переключается
+    ['l', 'r'].forEach(side => $('sc-' + side).addEventListener('change', () => {
+        state.score[side] = Math.max(0, Number($('sc-' + side).value) || 0);
+        $('sc-' + side).value = state.score[side];
+        rebase();
+        pushScore();
+    }));
+
+    // название команды обновляется сразу, как только поле изменено
+    [['t-left', 'leftName'], ['t-right', 'rightName']].forEach(([id, f]) => {
+        $(id).addEventListener('change', () => { state.score[f] = $(id).value.trim(); pushScore(); });
+    });
+
+    $('btn-sc-update').addEventListener('click', () => {
+        const s = state.score;
+        s.leftName = $('t-left').value.trim();
+        s.rightName = $('t-right').value.trim();
+        s.l = Math.max(0, Number($('sc-l').value) || 0);
+        s.r = Math.max(0, Number($('sc-r').value) || 0);
+        s.format = $('sc-format').value;
+        rebase();
+        pushScore();
+        toast('Табло обновлено', 'success');
+    });
+
+    $('btn-sc-toggle').addEventListener('click', () => {
+        state.score.visible = state.score.visible === false;
+        pushScore();
+    });
+
+    $('btn-stats-toggle').addEventListener('click', () => {
+        state.stats.visible = state.stats.visible === false;
+        save({ stats: { visible: state.stats.visible } });
+        refreshAll();
+    });
+
+    $('btn-stats-reset') && $('btn-stats-reset').addEventListener('click', () => {
+        ['left', 'right'].forEach(sd => state.teams[sd].forEach(p => { p.k = 0; p.hs = 0; p.ace = 0; }));
+        pushTeams(); toast('Килы и хедшоты обнулены');
+    });
+    $('btn-sc-reset').addEventListener('click', () => {
+        state.score.l = 0; state.score.r = 0;
+        $('sc-l').value = 0; $('sc-r').value = 0;
+        rebase();
+        pushScore();
+    });
+
+    /* ---------- журнал ---------- */
+    const clean = list => (list || []).map(p => ({ name: p.name, pid: p.pid || null, guest: !!p.guest, k: p.tp ? 0 : num(p.k) + sumPrev(p, 'k'), hs: p.tp ? 0 : num(p.hs) + sumPrev(p, 'hs'), ace: p.tp ? 0 : num(p.ace) + sumPrev(p, 'ace'), tp: p.tp || '', tpPts: p.tp ? num(p.tpPts) : 0 }));
+
+    /* ---------- технические поражения (ТП) у игрока ---------- */
+    const TPT = {
+        body3: { label: 'ТП 3 тела' },
+        normal: { label: 'ТП обычный' },
+        anon: { label: 'ТП аноним (не зашёл)' }
+    };
+    const syncInputs = () => { $('sc-l').value = state.score.l; $('sc-r').value = state.score.r; };
+
+    // Любая ручная правка счёта становится новой точкой отсчёта: все ТП, что уже учтены в счёте, «запекаются»,
+    // и дальше автоматика (ТП, этап) считает от того, что выставил стример. Снятие такого ТП счёт уже не уменьшает.
+    function rebase() { ['left', 'right'].forEach(sd => state.teams[sd].forEach(p => { if (p.tp) p.tpSettled = true; if (p.out) p.outSettled = true; })); }
+
+    // за ЛЮБОЕ ТП сопернику автоматически +1 к счёту
+    function applyTp(side, i, type) {
+        const p = state.teams[side][i]; if (!p) return;
+        const opp = side === 'left' ? 'r' : 'l', s = state.score;
+        const had = !!p.tp;
+        if (!type && p.settled) return toast('Эта дуэль уже записана — нажми «Отменить последнее действие»', 'error');
+        const snap = snapStage(); let adv = null;
+        if (!type) {
+            if (had && !p.tpSettled) s[opp] = Math.max(0, num(s[opp]) - num(p.tpPts));
+            delete p.tp; delete p.tpPts; delete p.tpSettled;
+        } else {
+            if (p.out) { if (!p.outSettled) s[opp] = Math.max(0, num(s[opp]) - 1); delete p.out; delete p.outSettled; }   // дуэль и ТП очко дважды не дают
+            if (!had) { s[opp] = num(s[opp]) + 1; p.tpPts = 1; delete p.tpSettled; }   // смена вида ТП очко повторно не добавляет
+            p.tp = type; p.k = 0; p.hs = 0; p.ace = 0;
+            adv = advance(side, p);
+        }
+        if (adv) { stageUndo = snap; $('btn-stage-undo').hidden = false; toast(`⚔ Следующая дуэль: ${adv.winner.name} vs ${adv.next.name}`, 'success'); }
+        syncInputs();
+        pushScore(); pushTeams();
+        if (type && !had) checkAutoStage();
+    }
+    // «ТП аноним»: никто не знает, кто должен был зайти — ник не нужен, соперник получает +1
+    function addAnon(side) {
+        const list = state.teams[side];
+        if (list.length >= 12) return toast('Максимум 12 игроков в команде', 'error');
+        const used = new Set([...state.teams.left, ...state.teams.right].map(p => p.name));
+        let n = 1; while (used.has('Аноним ' + n)) n++;
+        list.push({ name: 'Аноним ' + n, guest: true, anon: true, tp: 'anon', tpPts: 1, k: 0, hs: 0, ace: 0, rid: newRid() });
+        pairLeftovers();
+        const anonRow = list[list.length - 1], adv = advance(side, anonRow);
+        if (adv) toast(`⚔ Следующая дуэль: ${adv.winner.name} vs ${adv.next.name}`, 'success');
+        const opp = side === 'left' ? 'r' : 'l';
+        state.score[opp] = num(state.score[opp]) + 1;
+        syncInputs();
+        pushScore(); pushTeams();
+        toast('ТП аноним: сопернику +1', 'success');
+        checkAutoStage();
+    }
+    // выбор соперника 1 на 1 для игрока
+    function openPair(side, i) {
+        const p = state.teams[side][i]; if (!p || p.arch) return;
+        const oppSide = side === 'left' ? 'right' : 'left';
+        const cand = state.teams[oppSide].filter(q => !q.arch);
+        let box = $('pair-modal');
+        if (!box) { box = document.createElement('div'); box.id = 'pair-modal'; document.body.appendChild(box); }
+        box.innerHTML = `<div class="tp-back" data-px="close"><div class="tp-box">
+            <h3>⚔ С кем играет ${esc(p.name)}?</h3>
+            <div class="muted">Игроки на противоположной стороне. Это попадёт в журнал и в историю матчей игроков.</div>
+            ${cand.map(q => { const pq = partnerOf(q); return `<button class="btn ${partnerOf(p) === q ? 'green' : 'ghost'} block" data-px="${esc(q.rid)}">${esc(q.name)}${pq && pq !== p ? ` <small>(сейчас vs ${esc(pq.name)})</small>` : ''}</button>`; }).join('') || '<p class="muted" style="margin:10px 0">На другой стороне пока никого нет</p>'}
+            ${partnerOf(p) ? '<button class="btn pink block" data-px="none">Без пары</button>' : ''}
+            <button class="btn ghost block" data-px="close">Отмена</button></div></div>`;
+        box.querySelector('.tp-back').addEventListener('click', e => {
+            const b = e.target.closest('[data-px]'); if (!b) return;
+            const t = b.dataset.px;
+            if (t === 'close' && e.target.closest('.tp-box') && !b.classList.contains('btn')) return;
+            box.innerHTML = '';
+            if (t === 'close') return;
+            if (t === 'none') unlink(p);
+            else { const q = byRid(t); if (q) link(p, q); }
+            pushTeams();
+        });
+    }
+    function openTp(side, i) {
+        const p = state.teams[side][i]; if (!p) return;
+        let box = $('tp-modal');
+        if (!box) { box = document.createElement('div'); box.id = 'tp-modal'; document.body.appendChild(box); }
+        box.innerHTML = `<div class="tp-back" data-tpx="close"><div class="tp-box">
+            <h3>⚠️ Технические поражения</h3>
+            <div class="muted">${esc(p.name)}${p.tp ? ' · сейчас: ' + esc(TPT[p.tp].label) : ''}<br>Сопернику автоматически +1 к счёту.</div>
+            <button class="btn pink block" data-tpx="body3">ТП 3 тела</button>
+            <button class="btn pink block" data-tpx="normal">ТП обычный</button>
+            <button class="btn ghost block" data-tpx="anon">ТП аноним — не зашёл (ник скрыт на стриме)</button>
+            ${p.tp ? '<button class="btn green block" data-tpx="clear">✔ Снять ТП</button>' : ''}
+            <button class="btn ghost block" data-tpx="close">Отмена</button></div></div>`;
+        box.querySelector('.tp-back').addEventListener('click', e => {
+            const b = e.target.closest('[data-tpx]'); if (!b) return;
+            if (b.dataset.tpx === 'close' && e.target.closest('.tp-box') && !b.classList.contains('btn')) return;
+            const t = b.dataset.tpx; box.innerHTML = '';
+            if (t === 'close') return;
+            applyTp(side, i, t === 'clear' ? null : t);
+        });
+    }
+    document.addEventListener('click', e => { const b = e.target.closest('[data-tpo]'); if (b) openTp(b.dataset.tpo, Number(b.dataset.i)); });
+
+    function rosterHtml(list, cls) {
+        list = list || [];
+        return `<div class="jc ${cls}">` + (list.length
+            ? list.map(p => `<div><span>${esc(p.tp === 'anon' ? 'Аноним' : p.name)}${p.tp ? ' <i class="tpm">ТП</i>' : ''}</span><span><b>${num(p.k)}</b> K · <i>${num(p.hs)}</i> HS</span></div>`).join('')
+            : '<div><span class="muted">Состав не указан</span><span></span></div>') + '</div>';
+    }
+
+    function seriesTotals() {
+        const j = state.journal;
+        return {
+            n: j.length,
+            sumL: j.reduce((a, m) => a + num(m.l), 0),
+            sumR: j.reduce((a, m) => a + num(m.r), 0),
+            winsL: j.filter(m => m.l > m.r).length,
+            winsR: j.filter(m => m.l < m.r).length,
+            draws: j.filter(m => m.l === m.r).length
+        };
+    }
+
+    function aggregate(side) {
+        const map = new Map();
+        state.journal.forEach(m => (m[side === 'left' ? 'leftPlayers' : 'rightPlayers'] || []).forEach(p => {
+            const key = p.name.toLowerCase();
+            const a = map.get(key) || { name: p.name, k: 0, hs: 0, games: 0 };
+            a.k += num(p.k); a.hs += num(p.hs); a.games += 1;
+            map.set(key, a);
+        }));
+        return [...map.values()];
+    }
+
+    function renderJournal() {
+        const j = state.journal;
+        const t = seriesTotals();
+        $('jbadge').textContent = j.length || '';
+        $('jstats').innerHTML = `<span class="chip">Матчей: ${t.n}</span><span class="chip w">Побед слева: ${t.winsL}</span><span class="chip l">Побед справа: ${t.winsR}</span>`;
+
+        const box = $('series');
+        box.hidden = !j.length;
+        if (j.length) {
+            const L = state.score.leftName || (j[0] && j[0].left) || 'Левая';
+            const R = state.score.rightName || (j[0] && j[0].right) || 'Правая';
+            const kL = sumBy(aggregate('left'), 'k'), kR = sumBy(aggregate('right'), 'k');
+            const hL = sumBy(aggregate('left'), 'hs'), hR = sumBy(aggregate('right'), 'hs');
+            box.innerHTML = `<div class="sub">ОБЩИЙ СЧЁТ СЕРИИ</div>
+                <div class="big"><span class="a">${esc(L)}</span> ${t.sumL} : ${t.sumR} <span class="b">${esc(R)}</span></div>
+                <div class="jstats" style="margin:0"><span class="chip">Матчей выиграно: ${t.winsL} : ${t.winsR}</span>
+                <span class="chip c">Килы: ${kL} : ${kR}</span><span class="chip g">Хедшоты: ${hL} : ${hR}</span></div>`;
+        }
+
+        $('journal').innerHTML = j.length
+            ? j.map((m, i) => `<div class="jm ${m.l > m.r ? 'win' : m.l < m.r ? 'lose' : ''}">
+                <div class="jhead">
+                    <div class="jinfo">
+                        <div class="jt">${esc(m.left || '—')}<b>${esc(m.l)} : ${esc(m.r)}</b>${esc(m.right || '—')}</div>
+                        <div class="jmeta">${esc(fmtText(m.format))} ${num(m.round) > 1 ? ' · 2 этап' : ''} · ${new Date(m.t).toLocaleTimeString('ru', { hour: '2-digit', minute: '2-digit' })}</div>
+                    </div>
+                    <div class="jb">
+                        <button class="btn ${m.sent ? 'ghost' : 'green'} sm" data-j="send" data-i="${i}">${m.sent ? '✔ Отправлено' : '→ Админу'}</button>
+                        <button class="btn ghost sm" data-j="edit" data-i="${i}" title="Изменить счёт матча">✎</button>
+                        <button class="btn ghost sm" data-j="del" data-i="${i}">✕</button>
+                    </div>
+                </div>
+                <div class="jr">${rosterHtml(m.leftPlayers, 'l')}${rosterHtml(m.rightPlayers, 'r')}</div>
+            </div>`).join('')
+            : '<div class="none">Пока матчей нет. Нажми «Завершить матч» ниже.</div>';
+    }
+
+    /* ---------- 2 этап ----------
+       Первая игра — обычная (счёт идёт как есть, например 4 : 2). Дальше стример сам жмёт «Начать 2 этап»:
+       счёт остаётся, играют только победители (4 против 2), проигравшие уходят вверх списка, победители — вниз, между ними «2 ЭТАП».
+       Других этапов нет. Побеждает гильдия, первой набравшая 6 очков (в 6×6). */
+    let stageUndo = null;
+    const snapStage = () => JSON.parse(JSON.stringify({ score: state.score, teams: state.teams, journal: state.journal, duelLog: state.duelLog }));
+
+    // игрок проиграл дуэль: выбывает, сопернику +1 (как и за ТП)
+    function toggleOut(side, i) {
+        const p = state.teams[side][i]; if (!p || p.tp) return;
+        if (state.score.finished) return toast('Матч уже завершён — начни новый матч', 'error');
+        if (p.out && p.settled) return toast('Эта дуэль уже записана, победитель играет дальше. Нажми «Отменить последнее действие»', 'error');
+        const opp = side === 'left' ? 'r' : 'l', s = state.score;
+        const snap = snapStage();
+        let adv = null;
+        if (p.out) {
+            if (!p.outSettled) s[opp] = Math.max(0, num(s[opp]) - 1);
+            delete p.out; delete p.outSettled;
+        } else {
+            p.out = true; delete p.outSettled; s[opp] = num(s[opp]) + 1;
+            adv = advance(side, p);
+        }
+        if (adv) { stageUndo = snap; $('btn-stage-undo').hidden = false; toast(`⚔ Следующая дуэль: ${adv.winner.name} vs ${adv.next.name}. Киллы прошлой дуэли сохранены (в кабинете), счётчик с нуля`, 'success'); }
+        syncInputs();
+        pushScore(); pushTeams();
+        if (p.out) checkAutoStage();
+    }
+
+    function journalEntry() {
+        const s = state.score, mk = list => {
+            const m = new Map();
+            (list || []).forEach(p => {
+                const key = p.pid || String(p.name).toLowerCase(), c = clean([p])[0], a = m.get(key);
+                if (!a) m.set(key, { ...c, adv: inGame(p), out: !!p.out });
+                else { a.k += c.k; a.hs += c.hs; a.ace += c.ace; a.adv = a.adv || inGame(p); a.out = a.out && !!p.out; if (c.tp) { a.tp = c.tp; a.tpPts = c.tpPts; } }
+            });
+            return [...m.values()];
+        };
+        return { t: Date.now(), left: s.leftName, right: s.rightName, l: s.l, r: s.r, format: s.format, round: s.round,
+            leftPlayers: mk(state.teams.left), rightPlayers: mk(state.teams.right), duels: duelsOf(), sent: false };
+    }
+    // каждая пара «игрок слева против игрока справа» с их киллами/хедшотами; проиграл тот, кто выбыл (✖) или получил ТП
+    function duelsOf() {
+        const rd = num(state.score.round) || 1, out = state.duelLog.map(d => JSON.parse(JSON.stringify(d)));
+        state.teams.left.forEach(a => { const b = partnerOf(a); if (b) out.push({ stage: a.arch ? 1 : rd, l: duelSide(a), r: duelSide(b) }); });
+        return out;
+    }
+
+    // этап сам больше не переключается — только победа при наборе нужного числа очков
+    function checkAutoStage() {
+        const s = state.score, size = teamSize();
+        if (s.finished) return;
+        if (num(s.l) >= size || num(s.r) >= size) finishMatch(true);
+    }
+
+    function nextStage() {
+        const s = state.score;
+        if (s.finished) return toast('Матч завершён — начни новый матч', 'error');
+        if ((num(s.round) || 1) >= 2) return toast('2 этап уже идёт — других этапов нет', 'error');
+        const inL = state.teams.left.filter(inGame).length, inR = state.teams.right.filter(inGame).length;
+        if (!confirm(`Начать 2 этап?\nСчёт ${s.l} : ${s.r} сохранится. Все игроки 1 игры останутся внизу с киллами, победители сразу попадут в 2 этап с нуля. В игре ${inL} против ${inR}.`)) return;
+        stageUndo = snapStage();
+        // победители «падают» вниз вместе с проигравшими (киллы остаются, не перечёркнуты) и сразу автоматом попадают в 2 этап с нуля
+        ['left', 'right'].forEach(sd => {
+            const fresh = [];
+            state.teams[sd].forEach(p => {
+                const won = inGame(p);
+                p.arch = true;
+                if (!won) return;
+                fresh.push({ name: p.name, ...(p.pid ? { pid: p.pid } : {}), ...(p.guest ? { guest: true } : {}), k: 0, hs: 0, ace: 0 });
+            });
+            fresh.forEach(f => { f.rid = newRid(); });
+            state.teams[sd].push(...fresh);
+        });
+        pairLeftovers();
+        s.round = 2;
+        syncInputs();
+        $('btn-stage-undo').hidden = false;
+        save({ score: { ...s }, teams: state.teams });
+        refreshAll();
+        toast(`▶ Начался 2 этап: счёт ${s.l} : ${s.r}, в игре ${inL} против ${inR}. Победители уже во 2 этапе с нуля`, 'success');
+    }
+
+    function finishMatch(auto) {
+        const s = state.score;
+        if (s.finished) return toast('Матч уже записан', 'error');
+        if (!s.leftName || !s.rightName) return toast('Впиши названия обеих команд — без них матч не записать в журнал', 'error');
+        if (!auto && !confirm(`Завершить матч со счётом ${s.l} : ${s.r} и записать его в журнал?`)) return;
+        stageUndo = snapStage();
+        state.journal.unshift(journalEntry());
+        state.journal = state.journal.slice(0, 50);
+        s.finished = true;
+        $('btn-stage-undo').hidden = false;
+        save({ journal: state.journal, score: { ...s } });
+        refreshAll();
+        const w = num(s.l) > num(s.r) ? s.leftName : num(s.r) > num(s.l) ? s.rightName : null;
+        toast(`🏁 Матч завершён ${s.l} : ${s.r}${w ? ' — победила ' + w : ''}. Записан в журнал`, 'success');
+    }
+
+    function newMatch() {
+        const s = state.score;
+        if (!s.finished && (num(s.l) || num(s.r)) && !confirm('Текущий матч не записан в журнал. Всё равно начать новый?')) return;
+        if (!confirm('Начать новый матч? Счёт станет 0 : 0, составы команд очистятся (названия команд останутся).')) return;
+        stageUndo = snapStage();
+        s.l = 0; s.r = 0; s.round = 1; s.finished = false;
+        state.teams.left = []; state.teams.right = []; state.duelLog = [];
+        syncInputs();
+        $('btn-stage-undo').hidden = false;
+        save({ score: { ...s }, teams: state.teams, duelLog: [] });
+        refreshAll();
+        toast('Новый матч: счёт 0 : 0', 'success');
+    }
+
+    $('btn-stage-undo').addEventListener('click', () => {
+        if (!stageUndo) return;
+        Object.assign(state.score, stageUndo.score);
+        state.score.finished = !!stageUndo.score.finished;
+        state.teams.left = stageUndo.teams.left; state.teams.right = stageUndo.teams.right;
+        state.journal = stageUndo.journal; state.duelLog = stageUndo.duelLog || []; stageUndo = null;
+        $('btn-stage-undo').hidden = true;
+        syncInputs();
+        save({ journal: state.journal, score: { ...state.score }, teams: state.teams, duelLog: state.duelLog });
+        refreshAll();
+        toast('Последнее действие отменено', 'success');
+    });
+
+    // прогноз ELO гильдий (те же числа, что при зачёте админом: победа +25, поражение −10, килл +10, хедшот +5)
+    function projChip(side) {
+        const s = state.score, name = side === 'left' ? s.leftName : s.rightName;
+        if (!name) return '';
+        const my = num(side === 'left' ? s.l : s.r), op = num(side === 'left' ? s.r : s.l), list = state.teams[side];
+        const g = gstat(name), res = my > op ? 'win' : my < op ? 'loss' : 'draw';
+        const d = sumBy(list, 'k') * 10 + sumBy(list, 'hs') * 5 + (res === 'win' ? 25 : res === 'loss' ? -10 : 0);
+        return `<span class="chip ${res === 'win' ? 'w' : res === 'loss' ? 'l' : ''}">🏰 ${esc(name)}: ELO ${g.elo} → ${Math.max(0, g.elo + d)} (${d >= 0 ? '+' : ''}${d}) · ${res === 'win' ? 'победа' : res === 'loss' ? 'поражение' : 'ничья'}${g.isNew ? ' · новая гильдия' : ''}</span>`;
+    }
+
+    function renderStages() {
+        const s = state.score, round = num(s.round) || 1, size = teamSize(), l = num(s.l), r = num(s.r);
+        const inL = state.teams.left.filter(inGame).length, inR = state.teams.right.filter(inGame).length;
+        let banner;
+        if (s.finished) {
+            const w = l > r ? (s.leftName || 'Левая') : r > l ? (s.rightName || 'Правая') : '';
+            banner = `<div class="stg-now started"><span class="big">🏁 Матч завершён · ${l} : ${r}</span><span>${w ? 'победила ' + esc(w) : 'ничья'} · записан в журнал</span><button class="btn green sm" data-newmatch>▶ Новый матч</button></div>`;
+        } else if (round <= 1) {
+            banner = `<div class="stg-now"><span class="big">🎮 Обычная игра</span><span>счёт ${l} : ${r} · когда игра закончилась (например 4 : 2) — нажми «Начать 2 этап»</span><button class="btn green sm" data-nextstage>▶ Начать 2 этап</button></div>`;
+        } else {
+            banner = `<div class="stg-now started"><span class="big">▶ НАЧАЛСЯ 2 ЭТАП</span><span>счёт ${l} : ${r} продолжается · в игре ${inL} против ${inR} · вверху списка играющие с нуля, ниже — итог 1 игры: проигравшие (перечёркнуты) и победители с их киллами</span></div>`;
+        }
+        $('btn-stage').hidden = !!s.finished || round > 1;
+        $('stage-banner').innerHTML = banner +
+            `<div class="muted" style="font-size:12px;margin:8px 0">Как вести: игрок проиграл дуэль — нажми у него «✖ проиграл дуэль»: он выбывает, а сопернику автоматически +1. Победитель остаётся в игре. Матч выигрывает гильдия, набравшая ${size} очков.</div>` +
+            `<div class="proj">${projChip('left')}${projChip('right')}</div>` +
+            `<div class="muted" style="font-size:12px;margin-top:8px">Статистика гильдий (игры, победы, ELO, место в топе) начисляется после того, как админ одобрит отчёт — прогноз выше показывает, как она изменится.</div>`;
+    }
+
+    function addJournal(resetAfter) {
+        const s = state.score;
+        if (!s.leftName || !s.rightName) return toast('Впиши названия обеих команд', 'error');
+        if (resetAfter) return finishMatch(false);
+        state.journal.unshift(journalEntry());
+        state.journal = state.journal.slice(0, 50);
+        save({ journal: state.journal });
+        refreshAll();
+        toast('Матч записан в журнал', 'success');
+    }
+    $('btn-add-match').addEventListener('click', () => addJournal(true));
+    $('btn-add-nosreset').addEventListener('click', () => addJournal(false));
+    $('btn-stage').addEventListener('click', nextStage);
+    $('btn-finish').addEventListener('click', () => finishMatch(false));
+    $('btn-newmatch').addEventListener('click', newMatch);
+
+    $('journal').addEventListener('click', async e => {
+        const b = e.target.closest('[data-j]');
+        if (!b) return;
+        const i = Number(b.dataset.i);
+        const m = state.journal[i];
+        if (!m) return;
+        if (b.dataset.j === 'del') {
+            state.journal.splice(i, 1);
+        } else if (b.dataset.j === 'edit') {
+            const v = prompt('Счёт матча (левая : правая), например 6:3', `${m.l}:${m.r}`);
+            const mm = v && v.match(/(\d+)\s*[:\-]\s*(\d+)/);
+            if (!mm) return;
+            if (m.sent && !confirm('Матч уже отправлен админу — изменение не повлияет на отправленный отчёт. Продолжить?')) return;
+            m.l = Number(mm[1]); m.r = Number(mm[2]);
+        } else {
+            if (m.sent) return;
+            if (!m.left || !m.right) return toast('Нет названий команд — добавь матч заново', 'error');
+            try {
+                await db.collection('reports').add({
+                    type: 'match', streamer: session.name,
+                    myGuild: m.left, enemyGuild: m.right, score: `${m.l} : ${m.r}`,
+                    format: m.format || '', round: m.round || 1,
+                    leftPlayers: clean(m.leftPlayers), rightPlayers: clean(m.rightPlayers), duels: m.duels || [],
+                    players: clean(m.leftPlayers).map(p => p.name),
+                    status: 'pending', timestamp: new Date()
+                });
+                m.sent = true;
+                toast('Отправлено администратору', 'success');
+            } catch (err) { return toast('Не удалось отправить: ' + err.message, 'error'); }
+        }
+        save({ journal: state.journal });
+        renderJournal();
+    });
+
+    /* общий итог серии одним отчётом */
+    $('btn-send-series').addEventListener('click', async () => {
+        const j = state.journal;
+        if (!j.length) return toast('В журнале нет матчей', 'error');
+        const first = j[j.length - 1];
+        const L = first.left, R = first.right;
+        if (!L || !R) return toast('Нет названий команд', 'error');
+        if (j.some(m => m.sent) && !confirm('Часть матчей уже отправлена отдельно. Отправить итог всей серии?')) return;
+
+        const t = seriesTotals();
+        const left = aggregate('left'), right = aggregate('right');
+        try {
+            await db.collection('reports').add({
+                type: 'series', streamer: session.name,
+                myGuild: L, enemyGuild: R,
+                score: `${t.sumL} : ${t.sumR}`,
+                matchWins: `${t.winsL} : ${t.winsR}`,
+                matchesCount: t.n,
+                totalKills: `${sumBy(left, 'k')} : ${sumBy(right, 'k')}`,
+                totalHeadshots: `${sumBy(left, 'hs')} : ${sumBy(right, 'hs')}`,
+                matches: [...j].reverse().map(m => ({ left: m.left, right: m.right, l: num(m.l), r: num(m.r), format: m.format || '', round: m.round || 1, sent: !!m.sent, leftPlayers: clean(m.leftPlayers), rightPlayers: clean(m.rightPlayers), duels: m.duels || [] })),
+                leftPlayers: left, rightPlayers: right,
+                players: left.map(p => p.name),
+                status: 'pending', timestamp: new Date()
+            });
+            j.forEach(m => { m.sent = true; });
+            save({ journal: j });
+            renderJournal();
+            toast('Итог серии отправлен администратору', 'success');
+        } catch (err) { toast('Не удалось отправить: ' + err.message, 'error'); }
+    });
+
+    $('btn-journal-new').addEventListener('click', () => {
+        if (!state.journal.length) return;
+        if (state.journal.some(m => !m.sent) && !confirm('Не все матчи отправлены админу. Всё равно очистить журнал?')) return;
+        else if (!state.journal.some(m => !m.sent) && !confirm('Очистить журнал и начать новую серию?')) return;
+        state.journal = [];
+        save({ journal: [] });
+        renderJournal();
+    });
+
+    /* ---------- расстояния между блоками ---------- */
+    [['ui-gap-score', 'gapScore'], ['ui-gap-stats', 'gapStats'], ['ui-gap-vs', 'gapVs']].forEach(([id, k]) => {
+        $(id).addEventListener('input', () => {
+            state.ui[k] = Math.max(0, Math.min(800, Number($(id).value) || 0));
+            clearTimeout(save._ui); save._ui = setTimeout(() => save({ ui: state.ui }), 250);
+            refreshAll();
+        });
+    });
+    $('btn-ui-reset').addEventListener('click', () => {
+        state.ui = { ...UI_DEF }; fillInputs(); save({ ui: state.ui }); refreshAll();
+    });
+
+    /* ---------- VK и автоэфир ---------- */
+    function vkNorm(raw) {
+        let v = String(raw || '').trim();
+        if (!v) return '';
+        if (/^@?[\w.]+$/.test(v)) v = 'https://vk.com/' + v.replace('@', '');
+        if (!/^https?:\/\//i.test(v)) v = 'https://' + v;
+        let u; try { u = new URL(v); } catch (e) { return null; }
+        return /^(www\.)?vk\.(com|ru)$/.test(u.hostname) && /^[\w.\-\/?=&]{1,100}$/.test(u.pathname + u.search) ? u.href : null;
+    }
+    $('btn-vk-save').addEventListener('click', async () => {
+        const v = vkNorm($('inp-vk').value);
+        if (v === null) return toast('Не похоже на ссылку VK. Пример: https://vk.com/id1 или @имя', 'error');
+        try { await db.collection('streamer_public').doc(session.name).update({ vkUrl: v }); state.vkUrl = v; $('inp-vk').value = v; toast(v ? 'VK сохранён' : 'VK убран', 'success'); }
+        catch (e) { toast('Не удалось сохранить: ' + (e.code || e.message), 'error'); }
+    });
+    const AUTO_KEY = 'dilenow_autolive';
+    $('opt-autolive').checked = localStorage.getItem(AUTO_KEY) !== '0';
+    $('opt-autolive').addEventListener('change', () => { localStorage.setItem(AUTO_KEY, $('opt-autolive').checked ? '1' : '0'); beat(); });
+    function beat() {
+        if (!session) return;
+        db.collection('streamer_public').doc(session.name).update({ lastBeat: $('opt-autolive').checked ? Date.now() : 0 }).catch(() => {});
+    }
+    setInterval(beat, 60e3);
+    window.addEventListener('pagehide', () => { if (session) db.collection('streamer_public').doc(session.name).update({ lastBeat: 0 }).catch(() => {}); });
+
+    /* ---------- прочее ---------- */
+    function copyText(text) {
+        const done = () => toast('Ссылка скопирована', 'success');
+        if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(text).then(done, () => fallback());
+        else fallback();
+        function fallback() {
+            const t = document.createElement('textarea');
+            t.value = text; document.body.appendChild(t); t.select();
+            try { document.execCommand('copy'); done(); } catch (e) { toast('Скопируй вручную', 'error'); }
+            t.remove();
+        }
+    }
+
+    $('btn-login').addEventListener('click', () => login($('key-input').value.trim()));
+    $('key-input').addEventListener('keydown', e => { if (e.key === 'Enter') login($('key-input').value.trim()); });
+    $('btn-logout').addEventListener('click', logout);
+
+}
+</script>
+<script src="fx.js"></script>
+<script src="premium.js"></script>
+</body>
+</html>

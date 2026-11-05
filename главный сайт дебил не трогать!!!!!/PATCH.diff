@@ -1,0 +1,135 @@
+--- a/index.html
++++ b/index.html
+@@ -8,6 +8,7 @@
+     <link rel="stylesheet" href="style.css">
+     <link rel="stylesheet" href="fx.css">
+     <link rel="stylesheet" href="extras.css">
++    <link rel="stylesheet" href="pframes.css">
+     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+@@ -300,6 +301,7 @@
+                     <button data-shop-tab="excl">💎 Эксклюзив</button>
+                     <button data-shop-tab="effect">✨ Эффекты</button>
+                     <button data-shop-tab="frame">🖼 Рамки</button>
++                    <button data-shop-tab="pframe">🪟 Рамки профиля</button>
+                     <button data-shop-tab="charm">🧷 Брелки</button>
+                     <button data-shop-tab="top">🏆 Награды ТОП</button>
+                     <button data-shop-tab="mine">🎒 Моё</button>
+@@ -308,7 +310,7 @@
+                 <div class="shop-rules">
+                     <b>Как заработать монеты.</b> Монеты начисляются, когда администратор одобряет отчёт матча:
+                     <b>+10</b> за каждую победу, <b>+2</b> за каждый хедшот, <b>+5 / +10 / +15</b> за матчи «в плюсе» (чем больше побед относительно поражений, тем выше бонус), <b>+10</b> за эйс.
+-                    Цены: рамки <b>200</b>, анимированные эффекты <b>500</b>, обычные баннеры <b>200 / 300</b>, анимированные баннеры <b>500 / 700 / 800</b>, эксклюзивные <b>1500</b>, премиум баннеры и рамки <b>2000 / 2500</b>, брелки <b>600 / 800 / 1000</b>.
++                    Рамки окна профиля: обычные <b>1500</b>, анимированные <b>2500</b>, эксклюзивные <b>3500</b>, SUPER ELITE <b>50 000</b>. Цены: рамки <b>200</b>, анимированные эффекты <b>500</b>, обычные баннеры <b>200 / 300</b>, анимированные баннеры <b>500 / 700 / 800</b>, эксклюзивные <b>1500</b>, премиум баннеры и рамки <b>2000 / 2500</b>, брелки <b>600 / 800 / 1000</b>.
+                     Покупки видят все: на аватарке, баннер — в рейтингах «За всё время», «За месяц», в поиске игроков и в профиле. Баннеры и рамки влияют на уровень твоей гильдии (0–100): чем круче и анимированнее — тем больше опыта.
+                 </div>
+             </div>
+@@ -404,6 +406,9 @@
+ 
+     <script src="firebase-config.js"></script>
+     <script src="shop-data.js"></script>
++    <script src="pframes-data.js"></script>
++    <script src="pframes-elite.js"></script>
++    <script src="pframes.js"></script>
+     <script src="app.js"></script>
+     <script src="social.js"></script>
+     <script src="extras.js"></script>
+--- a/extras.js
++++ b/extras.js
+@@ -144,6 +144,7 @@
+         return `<span class="av-wrap ${cosClasses(p)}"><span class="g-letter">${letter}</span>${cosLayer(p)}</span>`;
+     }
+     function itemCard(it) {
++        if (it.type === 'pframe') return PF.card(it, me, owned(), eq());
+         const slot = it.type, has = owned().has(it.id), on = eq()[slot] === it.id && !AWARD_RANK[me && me.id];
+         let btn;
+         if (it.award) btn = `<button class="btn btn-sm btn-ghost" disabled>🏆 Награда ${TOP_NAME[it.award]} месяца</button>`;
+@@ -190,6 +191,7 @@
+         else if (shopTab === 'excl') html = sec('💎 Эксклюзив', '1500 монет', by('banner', i => i.tier === 'excl'));
+         else if (shopTab === 'effect') html = sec('✨ Анимированные эффекты и аватарки', `${PRICE_EFFECT} монет`, by('effect'));
+         else if (shopTab === 'frame') html = frSecs();
++        else if (shopTab === 'pframe') html = PF.shop(me);
+         else if (shopTab === 'charm') html = '<div class="shop-hint">🧷 Брелок крепится к рамке аватарки и качается, вращается или пульсирует. Видно везде: в рейтингах, профиле и на стриме.</div>' + chSecs();
+         else html = bnSecs() + sec('✨ Анимированные эффекты и аватарки', `${PRICE_EFFECT} монет`, by('effect')) + frSecs() + chSecs();
+         box.innerHTML = html;
+@@ -205,13 +207,16 @@
+         if (t.closest('[data-page="shop"]')) setTimeout(renderShop, 0);
+     });
+ 
++    let buyBusy = false;
+     async function buy(id, btn) {
+         const it = ITEM_BY_ID.get(id);
+         if (!me || !it) return;
++        if (buyBusy) return;                                   // защита от повторного клика
+         if (owned().has(id)) return toast('Это уже у тебя есть');
++        if (it.needUnlimited && !me.unlimited) return toast('Эта рамка доступна только аккаунту с безлимитным балансом', 'error');
+         if (!me.unlimited && coinsOf(me) < it.price) return toast(`Не хватает монет: нужно ${it.price}, у тебя ${coinsText(me)}`, 'error');
+         if (!confirm(`Купить «${it.name}» за ${me.unlimited ? '0' : it.price} монет?`)) return;
+-        btn.disabled = true;
++        btn.disabled = true; buyBusy = true;
+         const ref = db.collection('players').doc(me.id);
+         try {
+             await db.runTransaction(async tx => {
+@@ -232,7 +237,7 @@
+         } catch (err) {
+             toast(err.message === 'coins' ? 'Не хватает монет' : err.message === 'already' ? 'Уже куплено' : 'Не удалось купить: ' + (err.code || err.message), 'error');
+         }
+-        btn.disabled = false;
++        btn.disabled = false; buyBusy = false;
+     }
+     async function equip(id, on) {
+         const it = ITEM_BY_ID.get(id); if (!me || !it) return;
+--- a/app.js
++++ b/app.js
+@@ -152,6 +152,7 @@
+ 
+ // ---------------- окна ----------------
+ function openModal(html, back) {
++    if (window.PF) PF.clear();                                  // рамка профиля снимается при смене окна
+     $('modal-body').innerHTML = html;
+     modalBack = back || null;
+     $('modal-back').hidden = !back;
+@@ -202,6 +203,7 @@
+         <h4 class="pm-sub">⚔️ Победы и поражения по гильдиям <span class="muted">(нажми на название)</span></h4>
+         ${guildListHtml(p)}
+         <button class="btn btn-sm" style="margin-top:16px" data-open-user="${esc(p.id)}">👤 Открыть профиль и видео</button>`);
++    if (window.PF) PF.apply(p);                                 // рамка, купленная и надетая игроком
+ }
+ 
+ const histRow = h => {
+--- a/firestore.rules
++++ b/firestore.rules
+@@ -19,15 +19,20 @@
+         : id.matches('bz_.*') ? 1500
+         : id.matches('bn20_.*') ? 2000 : id.matches('bn25_.*') ? 2500
+         : id.matches('fr20_.*') ? 2000 : id.matches('fr25_.*') ? 2500
+-        : id.matches('cz6_.*') ? 600 : id.matches('cz8_.*') ? 800 : id.matches('cz10_.*') ? 1000 : 1000000000;
++        : id.matches('cz6_.*') ? 600 : id.matches('cz8_.*') ? 800 : id.matches('cz10_.*') ? 1000
++        // рамки окна профиля: pa=1500 pb=2500 pc=3500 pd=50000; pe_ (ADMIN GOD) не имеет цены — только при unlimited
++        : id.matches('pa_.*') ? 1500 : id.matches('pb_.*') ? 2500 : id.matches('pc_.*') ? 3500 : id.matches('pd_.*') ? 50000
++        : 1000000000;
+     }
+-    function itemOk(id) { return id.matches('(fr|fx|b2|b3|a5|a7|a8|bz|bn20|bn25|fr20|fr25|cz6|cz8|cz10)_[a-z0-9_]{2,30}'); }
++    function itemOk(id) { return id.matches('(fr|fx|b2|b3|a5|a7|a8|bz|bn20|bn25|fr20|fr25|cz6|cz8|cz10|pa|pb|pc|pd|pe)_[a-z0-9_]{2,30}'); }
+     // покупка: ровно один новый предмет, монеты списаны на его цену (у безлимитных — без списания)
+     function buyOk(o, n) {
+       let oldInv = o.get('inventory', []);
+       let added = n.inventory.removeAll(oldInv);
+       return n.inventory.size() == oldInv.size() + 1 && added.size() == 1 && itemOk(added[0])
+         && !(added[0] in oldInv)
++        // ADMIN GOD (pe_) — только аккаунт, которому АДМИН выдал unlimited (это поле игрок записать сам не может)
++        && (!added[0].matches('pe_.*') || o.get('unlimited', false) == true)
+         && (o.get('unlimited', false) == true
+             ? n.get('coins', 0) == o.get('coins', 0)
+             : (n.coins >= 0 && n.coins == o.get('coins', 0) - itemPrice(added[0])));
+@@ -40,7 +45,8 @@
+           && (eq.get('effect', '') == '' || eq.get('effect', '') in inv)
+           && (eq.get('banner', '') == '' || eq.get('banner', '') in inv)
+           && (eq.get('charm', '') == '' || eq.get('charm', '') in inv)
+-          && eq.keys().toSet().hasOnly(['frame', 'effect', 'banner', 'charm']);
++          && (eq.get('pframe', '') == '' || eq.get('pframe', '') in inv)
++          && eq.keys().toSet().hasOnly(['frame', 'effect', 'banner', 'charm', 'pframe']);
+     }
+     function ownsStreamer(name) { return signedIn() && get(/databases/$(database)/documents/streamer_public/$(name)).data.playerUid == request.auth.uid; }
+ 

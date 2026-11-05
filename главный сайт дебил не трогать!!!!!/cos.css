@@ -1,0 +1,122 @@
+/* рамки, эффекты и баннеры для оверлеев OBS (выдержка из style.css / extras.css) */
+.av-wrap {
+    position: relative;
+    display: inline-block;
+    flex-shrink: 0;
+    line-height: 0;
+    padding: 3px;
+    border-radius: 14px;
+}
+.av-wrap.big { padding: 4px; border-radius: 22px; }
+.av-wrap img { display: block; border: none !important; border-radius: 11px; box-shadow: none; }
+.av-wrap.big img { border-radius: 18px; }
+/* ---------------- рамки и эффекты на аватарках ---------------- */
+.av-wrap.cos { padding: 4px; background-size: 100% 100%; animation: none; }
+.av-wrap.big.cos { padding: 5px; }
+.av-wrap.cos-fr-cyan    { background-image: linear-gradient(135deg, #d6fbff, #22e3ff 50%, #087a92); box-shadow: 0 0 14px rgba(34, 227, 255, .7); }
+.av-wrap.cos-fr-pink    { background-image: linear-gradient(135deg, #ffd0e4, #ff3d8b 50%, #9c1050); box-shadow: 0 0 14px rgba(255, 61, 139, .7); }
+.av-wrap.cos-fr-violet  { background-image: linear-gradient(135deg, #e5d8ff, #8b5cf6 50%, #4a1fa8); box-shadow: 0 0 14px rgba(139, 92, 246, .75); }
+.av-wrap.cos-fr-gold    { background-image: linear-gradient(135deg, #fff1b8, #ffc857 50%, #a8740b); box-shadow: 0 0 14px rgba(255, 200, 87, .7); }
+.av-wrap.cos-fr-emerald { background-image: linear-gradient(135deg, #c7ffe6, #2ee59d 50%, #0a7a52); box-shadow: 0 0 14px rgba(46, 229, 157, .7); }
+.av-wrap.cos-fr-crimson { background-image: linear-gradient(135deg, #ffc2cc, #ff4d6d 50%, #8a0f2a); box-shadow: 0 0 14px rgba(255, 77, 109, .7); }
+.av-wrap.cos-fr-ice     { background-image: linear-gradient(135deg, #ffffff, #bfe9ff 50%, #7fb7e6); box-shadow: 0 0 14px rgba(191, 233, 255, .7); }
+.av-wrap.cos-fr-sunset  { background-image: linear-gradient(135deg, #ffb347, #ff3d8b 55%, #8b5cf6); box-shadow: 0 0 14px rgba(255, 110, 120, .7); }
+
+/* слой частиц */
+.fxl { position: absolute; inset: -12px; z-index: 4; pointer-events: none; line-height: 0; }
+.fxl b { position: absolute; display: block; opacity: 0; animation-delay: var(--d, 0s); animation-iteration-count: infinite; animation-fill-mode: both; }
+.fxl b:nth-child(1) { --x: 10%; --d: 0s; }
+.fxl b:nth-child(2) { --x: 28%; --d: .35s; }
+.fxl b:nth-child(3) { --x: 47%; --d: .7s; }
+.fxl b:nth-child(4) { --x: 66%; --d: 1.05s; }
+.fxl b:nth-child(5) { --x: 82%; --d: 1.4s; }
+.fxl b:nth-child(6) { --x: 94%; --d: .5s; }
+
+.av-wrap.cos-fxon { background-size: 300% 300%; animation-duration: 3s; animation-timing-function: linear; animation-iteration-count: infinite; }
+@keyframes x-shift { 0% { background-position: 0% 50%; } 100% { background-position: 300% 50%; } }
+@keyframes x-rise { 0% { top: 104%; opacity: 0; } 15% { opacity: 1; } 100% { top: -10%; opacity: 0; } }
+@keyframes x-fall { 0% { top: -8%; opacity: 0; transform: translateX(0); } 12% { opacity: 1; } 100% { top: 106%; opacity: 0; transform: translateX(6px); } }
+@keyframes x-twinkle { 0%, 100% { opacity: 0; transform: scale(.3); } 50% { opacity: 1; transform: scale(1.2); } }
+@keyframes x-pulse { 0%, 100% { transform: scale(.8); opacity: .75; } 50% { transform: scale(1.25); opacity: 1; } }
+
+/* огонь */
+.av-wrap.cos-fx-fire { background-image: linear-gradient(0deg, #ff3d00, #ffd000, #ff3d00, #ff7a00); animation-name: x-shift, x-flick; animation-duration: 2s, 1s; animation-iteration-count: infinite; animation-direction: normal, alternate; }
+@keyframes x-flick { from { box-shadow: 0 0 12px rgba(255, 90, 0, .8), 0 -6px 22px rgba(255, 170, 0, .55); } to { box-shadow: 0 0 22px rgba(255, 60, 0, 1), 0 -12px 34px rgba(255, 200, 0, .7); } }
+.cos-fx-fire .fxl b { left: var(--x); width: 8px; height: 12px; margin-left: -4px; border-radius: 50% 50% 50% 50% / 62% 62% 38% 38%;
+    background: radial-gradient(circle at 50% 72%, #fff6b8, #ffb300 48%, #ff4500 78%, transparent); filter: blur(.4px); animation-name: x-rise; animation-duration: 1.5s; animation-timing-function: ease-out; }
+
+/* снег */
+.av-wrap.cos-fx-snow { background-image: linear-gradient(135deg, #ffffff, #a8e6ff, #eaf9ff, #6fcdf5); animation-name: x-shift, x-icy; animation-duration: 4s, 2.4s; animation-direction: normal, alternate; }
+@keyframes x-icy { from { box-shadow: 0 0 10px rgba(170, 230, 255, .6); } to { box-shadow: 0 0 24px rgba(210, 244, 255, .95); } }
+.cos-fx-snow .fxl b { left: var(--x); width: 5px; height: 5px; border-radius: 50%; background: #fff; box-shadow: 0 0 6px #bfeaff; animation-name: x-fall; animation-duration: 2.8s; animation-timing-function: linear; }
+.cos-fx-snow .fxl b:nth-child(odd) { width: 4px; height: 4px; animation-duration: 3.6s; }
+
+/* искры */
+.av-wrap.cos-fx-sparks { background-image: linear-gradient(120deg, #fff2b0, #ffc857, #ff8a00, #fff2b0); animation-name: x-shift, x-spk; animation-duration: 2.2s, .9s; animation-direction: normal, alternate; }
+@keyframes x-spk { from { box-shadow: 0 0 10px rgba(255, 200, 87, .7); } to { box-shadow: 0 0 26px rgba(255, 150, 40, 1); } }
+.cos-fx-sparks .fxl b { left: var(--x); width: 3px; height: 3px; border-radius: 50%; background: #fff6c9; box-shadow: 0 0 6px 2px #ffc857, 0 0 14px 3px rgba(255, 140, 0, .8); animation-name: x-rise; animation-duration: 1s; animation-timing-function: cubic-bezier(.2, .8, .3, 1); }
+.cos-fx-sparks .fxl b:nth-child(even) { animation-duration: .75s; }
+
+/* салют */
+.av-wrap.cos-fx-fireworks { background-image: linear-gradient(120deg, #ff3d8b, #ffc857, #2ee59d, #22e3ff, #8b5cf6, #ff3d8b); animation-name: x-shift; animation-duration: 3s; box-shadow: 0 0 16px rgba(255, 61, 139, .6), 0 0 26px rgba(34, 227, 255, .4); }
+.cos-fx-fireworks .fxl b { width: 3px; height: 3px; border-radius: 50%; color: #ff3d8b; background: currentColor; transform: scale(0); animation-name: x-burst; animation-duration: 2s; animation-timing-function: ease-out;
+    box-shadow: 0 -12px currentColor, 9px -9px currentColor, 12px 0 currentColor, 9px 9px currentColor, 0 12px currentColor, -9px 9px currentColor, -12px 0 currentColor, -9px -9px currentColor; }
+@keyframes x-burst { 0% { opacity: 1; transform: scale(0); } 70% { opacity: 1; } 100% { opacity: 0; transform: scale(1.7); } }
+.cos-fx-fireworks .fxl b:nth-child(1) { left: 2%;  top: 8%;  color: #ff3d8b; }
+.cos-fx-fireworks .fxl b:nth-child(2) { left: 94%; top: 6%;  color: #ffc857; --d: .5s; }
+.cos-fx-fireworks .fxl b:nth-child(3) { left: 96%; top: 82%; color: #22e3ff; --d: 1s; }
+.cos-fx-fireworks .fxl b:nth-child(4) { left: 4%;  top: 86%; color: #2ee59d; --d: 1.5s; }
+.cos-fx-fireworks .fxl b:nth-child(5) { left: 50%; top: -6%; color: #8b5cf6; --d: .25s; }
+.cos-fx-fireworks .fxl b:nth-child(6) { left: 50%; top: 104%; color: #ff8a3d; --d: .75s; }
+
+/* человек-паук */
+.av-wrap.cos-fx-spider { background-image: linear-gradient(90deg, #ff1e3c, #1e50ff, #ff1e3c, #1e50ff); animation-name: x-shift, x-spider; animation-duration: 2.4s, 1.6s; animation-direction: normal, alternate; }
+@keyframes x-spider { from { box-shadow: 0 0 10px rgba(255, 30, 60, .8); } to { box-shadow: 0 0 22px rgba(30, 80, 255, .9); } }
+.cos-fx-spider .fxl b:nth-child(1) { right: 0; top: 0; width: 48%; height: 48%; opacity: .9; animation: none;
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' fill='none' stroke='%23ffffff' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='M100 0L8 20M100 0L28 52M100 0L56 78M100 0L88 96'/%3E%3Cpath d='M82 5Q80 24 62 28M64 11Q60 34 36 42M46 18Q42 44 20 50' stroke-width='1.6'/%3E%3C/svg%3E") center/contain no-repeat; filter: drop-shadow(0 0 3px #ff1e3c); }
+.cos-fx-spider .fxl b:nth-child(2) { left: 16%; top: -6%; width: 1.5px; height: 28%; background: linear-gradient(#fff, rgba(255, 255, 255, .5)); transform-origin: top center; animation-name: x-thread; animation-duration: 2.8s; animation-timing-function: ease-in-out; --d: 0s; }
+.cos-fx-spider .fxl b:nth-child(2)::after { content: '🕷'; position: absolute; left: -7px; bottom: -9px; font-size: 12px; line-height: 1; }
+@keyframes x-thread { 0%, 100% { opacity: 1; height: 18%; transform: rotate(-6deg); } 50% { opacity: 1; height: 44%; transform: rotate(7deg); } }
+.cos-fx-spider .fxl b:nth-child(n+3) { left: var(--x); top: 40%; width: 4px; height: 4px; border-radius: 50%; background: #ff1e3c; box-shadow: 0 0 8px #ff1e3c; animation-name: x-twinkle; animation-duration: 1.8s; }
+.cos-fx-spider .fxl b:nth-child(4), .cos-fx-spider .fxl b:nth-child(6) { background: #3c6cff; box-shadow: 0 0 8px #3c6cff; top: 70%; }
+
+/* железный */
+.av-wrap.cos-fx-ironman { background-image: linear-gradient(120deg, #ff2a2a, #ffd36b, #b30000, #ffd36b, #ff2a2a); animation-name: x-shift, x-iron; animation-duration: 3s, 1.4s; animation-direction: normal, alternate; }
+@keyframes x-iron { from { box-shadow: 0 0 10px rgba(255, 40, 40, .7); } to { box-shadow: 0 0 24px rgba(255, 190, 60, .9), 0 0 36px rgba(34, 227, 255, .35); } }
+.cos-fx-ironman .fxl b:nth-child(1) { left: 50%; top: 100%; width: 11px; height: 11px; margin: -5px 0 0 -5px; border-radius: 50%; background: radial-gradient(circle, #fff, #7ff3ff 45%, #22e3ff 70%, transparent); box-shadow: 0 0 12px 4px rgba(34, 227, 255, .8); animation-name: x-pulse; animation-duration: 1.3s; --d: 0s; }
+.cos-fx-ironman .fxl b:nth-child(n+2) { left: var(--x); top: 20%; width: 3px; height: 3px; border-radius: 50%; background: #ffd36b; box-shadow: 0 0 6px #ffc857; animation-name: x-twinkle; animation-duration: 1.6s; }
+.cos-fx-ironman .fxl b:nth-child(even) { top: 70%; }
+
+/* громовержец */
+.av-wrap.cos-fx-thunder { background-image: linear-gradient(120deg, #bfe3ff, #3b8cff, #ffffff, #3b8cff); animation-name: x-shift, x-thunder; animation-duration: 1.6s, 2.4s; }
+@keyframes x-thunder { 0%, 100% { box-shadow: 0 0 10px rgba(59, 140, 255, .7); } 40% { box-shadow: 0 0 12px rgba(59, 140, 255, .8); } 42% { box-shadow: 0 0 34px rgba(210, 235, 255, 1), 0 0 60px rgba(59, 140, 255, .9); } 46% { box-shadow: 0 0 10px rgba(59, 140, 255, .7); } 50% { box-shadow: 0 0 28px rgba(210, 235, 255, .95); } }
+.cos-fx-thunder .fxl b { width: 9px; height: 20px; background: linear-gradient(#fff, #9fd0ff); clip-path: polygon(60% 0, 10% 55%, 45% 55%, 25% 100%, 95% 40%, 55% 40%); filter: drop-shadow(0 0 4px #5aa8ff); animation-name: x-bolt; animation-duration: 2.4s; }
+@keyframes x-bolt { 0%, 38%, 52%, 100% { opacity: 0; } 40% { opacity: 1; } 44% { opacity: 0; } 47% { opacity: 1; } 50% { opacity: 0; } }
+.cos-fx-thunder .fxl b:nth-child(1) { left: -2%; top: 6%; transform: rotate(-18deg); --d: 0s; }
+.cos-fx-thunder .fxl b:nth-child(2) { left: 90%; top: 4%; transform: rotate(16deg); --d: .5s; }
+.cos-fx-thunder .fxl b:nth-child(3) { left: 94%; top: 62%; transform: rotate(-10deg); --d: 1s; }
+.cos-fx-thunder .fxl b:nth-child(4) { left: -4%; top: 64%; transform: rotate(12deg); --d: 1.5s; }
+.cos-fx-thunder .fxl b:nth-child(n+5) { display: none; }
+
+/* зелёная ярость */
+.av-wrap.cos-fx-hulk { background-image: linear-gradient(120deg, #b8ff7a, #2ee59d, #17a34a, #b8ff7a); animation-name: x-shift, x-hulk; animation-duration: 3s, 1.1s; animation-direction: normal, alternate; }
+@keyframes x-hulk { from { box-shadow: 0 0 10px rgba(80, 255, 110, .7); } to { box-shadow: 0 0 28px rgba(120, 255, 80, 1); } }
+.cos-fx-hulk .fxl b { inset: 12px; width: auto; height: auto; border: 2px solid #6bff6b; border-radius: 22%; box-shadow: 0 0 10px #4aff4a; animation-name: x-shock; animation-duration: 1.8s; animation-timing-function: ease-out; }
+@keyframes x-shock { 0% { opacity: .9; transform: scale(1); } 100% { opacity: 0; transform: scale(1.5); } }
+.cos-fx-hulk .fxl b:nth-child(1) { --d: 0s; } .cos-fx-hulk .fxl b:nth-child(2) { --d: .6s; } .cos-fx-hulk .fxl b:nth-child(3) { --d: 1.2s; }
+.cos-fx-hulk .fxl b:nth-child(n+4) { display: none; }
+
+/* симбиот */
+.av-wrap.cos-fx-venom { background-image: linear-gradient(120deg, #05030d, #6d28d9, #05030d, #e9e4ff, #05030d); animation-name: x-shift, x-venom; animation-duration: 3.4s, 1.8s; animation-direction: normal, alternate; }
+@keyframes x-venom { from { box-shadow: 0 0 10px rgba(109, 40, 217, .8); } to { box-shadow: 0 0 26px rgba(160, 100, 255, 1), 0 0 4px #fff; } }
+.cos-fx-venom .fxl b { left: var(--x); top: 96%; width: 5px; height: 11px; margin-left: -2px; border-radius: 40% 40% 50% 50% / 25% 25% 75% 75%; background: linear-gradient(#0a0612, #1b0f33); box-shadow: 0 0 6px #7c3aed; animation-name: x-drip; animation-duration: 2.4s; animation-timing-function: ease-in; }
+@keyframes x-drip { 0% { opacity: 0; transform: translateY(-6px) scaleY(.4); } 20% { opacity: 1; transform: translateY(0) scaleY(1); } 100% { opacity: 0; transform: translateY(20px) scaleY(1.3); } }
+.cos-fx-venom .fxl b:nth-child(even) { animation-duration: 3s; }
+
+/* галактика */
+.av-wrap.cos-fx-galaxy { background-image: linear-gradient(120deg, #7c3aed, #22e3ff, #ff3d8b, #7c3aed); animation-name: x-shift, x-galaxy; animation-duration: 2.6s, 3s; animation-direction: normal, alternate; }
+@keyframes x-galaxy { from { box-shadow: 0 0 12px rgba(124, 58, 237, .8); } to { box-shadow: 0 0 28px rgba(34, 227, 255, .8), 0 0 40px rgba(255, 61, 139, .4); } }
+.cos-fx-galaxy .fxl b { left: var(--x); width: 3px; height: 3px; border-radius: 50%; background: #fff; box-shadow: 0 0 8px 2px rgba(190, 230, 255, .9); animation-name: x-twinkle; animation-duration: 2s; }
+.cos-fx-galaxy .fxl b:nth-child(1) { top: 4%; } .cos-fx-galaxy .fxl b:nth-child(2) { top: 92%; } .cos-fx-galaxy .fxl b:nth-child(3) { top: 30%; left: -2%; }
+.cos-fx-galaxy .fxl b:nth-child(4) { top: 70%; left: 98%; } .cos-fx-galaxy .fxl b:nth-child(5) { top: 2%; } .cos-fx-galaxy .fxl b:nth-child(6) { top: 100%; }
+

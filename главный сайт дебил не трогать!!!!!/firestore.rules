@@ -1,0 +1,261 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Почта админа (та же, что в Authentication и в firebase-config.js)
+    // забаненный (есть запись в banned_uids) не может ничего писать
+    function signedIn() { return request.auth != null && !exists(/databases/$(database)/documents/banned_uids/$(request.auth.uid)); }
+    // ДВА администратора. Оба аккаунта должны быть созданы в Authentication → Users ДО публикации правил
+    function isAdmin() { return signedIn() && request.auth.token.email in ['nockisy@gmail.com', 'dilenowpc@gmail.com']; }
+    function owns(pid) { return signedIn() && get(/databases/$(database)/documents/players/$(pid)).data.uid == request.auth.uid; }
+    // ---------- магазин ----------
+    // рамки fr_* стоят 200, анимированные эффекты fx_* — 500
+    // цена зашита в префиксе id (см. shop-data.js): fr_=200 fx_=500 b2_=200 b3_=300 a5_=500 a7_=700 a8_=800 bz_=1500
+    // bn20_=2000 bn25_=2500 (баннеры), fr20_=2000 fr25_=2500 (рамки), cz6_=600 cz8_=800 cz10_=1000 (брелки)
+    function itemPrice(id) {
+      return id.matches('fx_.*') ? 500 : id.matches('fr_.*') ? 200
+        : id.matches('b2_.*') ? 200 : id.matches('b3_.*') ? 300
+        : id.matches('a5_.*') ? 500 : id.matches('a7_.*') ? 700 : id.matches('a8_.*') ? 800
+        : id.matches('bz_.*') ? 1500
+        : id.matches('bn20_.*') ? 2000 : id.matches('bn25_.*') ? 2500
+        : id.matches('fr20_.*') ? 2000 : id.matches('fr25_.*') ? 2500
+        : id.matches('cz6_.*') ? 600 : id.matches('cz8_.*') ? 800 : id.matches('cz10_.*') ? 1000
+        // рамки окна профиля: pa=1500 pb=2500 pc=3500 pd=50000; pe_ (ADMIN GOD) не имеет цены — только при unlimited
+        : id.matches('pa_.*') ? 1500 : id.matches('pb_.*') ? 2500 : id.matches('pc_.*') ? 3500 : id.matches('pd_.*') ? 50000
+        : 1000000000;
+    }
+    function itemOk(id) { return id.matches('(fr|fx|b2|b3|a5|a7|a8|bz|bn20|bn25|fr20|fr25|cz6|cz8|cz10|pa|pb|pc|pd|pe)_[a-z0-9_]{2,30}'); }
+    // 🍬 временное событие «Хэллоуин»: конфеты и хэллоуин-товары работают до 7 ноября 23:59:59 по Бишкеку (= 18:00 UTC)
+    function eventOn() { return request.time < timestamp.date(2026, 11, 7) + duration.time(18, 0, 0, 0); }
+    // цена в конфетах: 1 конфета = 200 монет, округление вверх
+    function candyPrice(id) { return math.ceil(itemPrice(id) / 200.0); }
+    // покупка: ровно один новый предмет; платим ЛИБО монетами, ЛИБО конфетами (у безлимитных — без списания)
+    function buyOk(o, n) {
+      let oldInv = o.get('inventory', []);
+      let added = n.inventory.removeAll(oldInv);
+      let oc = o.get('coins', 0); let nc = n.get('coins', 0);
+      let ok = o.get('candies', 0); let nk = n.get('candies', 0);
+      return n.inventory.size() == oldInv.size() + 1 && added.size() == 1 && itemOk(added[0])
+        && !(added[0] in oldInv)
+        // ADMIN GOD / ADMIN DRACULA (pe_) — только аккаунт, которому АДМИН выдал unlimited (это поле игрок записать сам не может)
+        && (!added[0].matches('pe_.*') || o.get('unlimited', false) == true)
+        // хэллоуин-товары (_hw_) нельзя купить после окончания события
+        && (!added[0].matches('.*_hw_.*') || eventOn())
+        && (o.get('unlimited', false) == true
+            ? (nc == oc && nk == ok)
+            : ((nk == ok && nc >= 0 && nc == oc - itemPrice(added[0]))
+               || (eventOn() && !added[0].matches('pe_.*') && nc == oc && nk >= 0 && nk == ok - candyPrice(added[0]))));
+    }
+    // обменник: 1 конфета = 200 монет в обе стороны, только пока идёт событие
+    function exchangeOk(o, n) {
+      let dc = n.get('coins', 0) - o.get('coins', 0);
+      let dk = n.get('candies', 0) - o.get('candies', 0);
+      return eventOn() && dk != 0 && dc == -200 * dk && n.get('coins', 0) >= 0 && n.get('candies', 0) >= 0;
+    }
+    // надеть можно только купленное
+    function equipOk(o, n) {
+      let inv = o.get('inventory', []);
+      let eq = n.get('equipped', {});
+      return (eq.get('frame', '') == '' || eq.get('frame', '') in inv)
+          && (eq.get('effect', '') == '' || eq.get('effect', '') in inv)
+          && (eq.get('banner', '') == '' || eq.get('banner', '') in inv)
+          && (eq.get('charm', '') == '' || eq.get('charm', '') in inv)
+          && (eq.get('pframe', '') == '' || eq.get('pframe', '') in inv)
+          && eq.keys().toSet().hasOnly(['frame', 'effect', 'banner', 'charm', 'pframe', 'aoff']);
+    }
+    function ownsStreamer(name) { return signedIn() && get(/databases/$(database)/documents/streamer_public/$(name)).data.playerUid == request.auth.uid; }
+
+    // ---------- игроки ----------
+    match /players/{id} {
+      allow read: if true;
+      allow create: if signedIn()
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.elo == 0
+        && request.resource.data.totalWins == 0 && request.resource.data.seasonWins == 0
+        && request.resource.data.totalKills == 0 && request.resource.data.streak == 0
+        && request.resource.data.totalGames == 0
+        // монеты, безлимит и покупки при регистрации выдавать нельзя
+        && !('coins' in request.resource.data) && !('candies' in request.resource.data) && !('unlimited' in request.resource.data)
+        && !('inventory' in request.resource.data) && !('equipped' in request.resource.data);
+      allow update: if isAdmin()
+        // владелец меняет только оформление профиля, а не рейтинг
+        || (signedIn() && resource.data.get('uid', null) == request.auth.uid
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['avatarUrl', 'displayName', 'bio']))
+        // покупка в магазине
+        || (signedIn() && resource.data.get('uid', null) == request.auth.uid
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['coins', 'candies', 'inventory'])
+            && buyOk(resource.data, request.resource.data))
+        // обмен монет на конфеты и обратно
+        || (signedIn() && resource.data.get('uid', null) == request.auth.uid
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['coins', 'candies'])
+            && exchangeOk(resource.data, request.resource.data))
+        // надеть / снять рамку и эффект
+        || (signedIn() && resource.data.get('uid', null) == request.auth.uid
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['equipped'])
+            && equipOk(resource.data, request.resource.data))
+        // старый аккаунт: первый вход переносит его под защищённый вход
+        || (signedIn() && resource.data.get('uid', null) == null
+            && request.resource.data.uid == request.auth.uid
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['uid', 'password', 'phone']));
+      allow delete: if isAdmin();
+
+      match /history/{h} {
+        allow read: if true;
+        allow write: if isAdmin();
+      }
+    }
+
+    // ---------- «бронь» ников и юзернеймов: нельзя занять уже существующий или похожий (ключ считает nameKey в firebase-config.js) ----------
+    // создать можно только если такого ключа ещё нет, и только вместе со своим профилем; менять/удалять — админ
+    match /name_keys/{k} {
+      allow read: if true;
+      allow create: if signedIn()
+        && request.resource.data.uid == request.auth.uid
+        && getAfter(/databases/$(database)/documents/players/$(request.resource.data.pid)).data.uid == request.auth.uid;
+      allow update, delete: if isAdmin();
+    }
+
+    // журнал ручных корректировок рейтинга (только админ)
+    // ---------- зарубы (матчи гильдий): видят все, пишет только админ ----------
+    match /zaruby/{id} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /rating_log/{id} {
+      allow read, write: if isAdmin();
+    }
+
+    match /player_private/{uid} {
+      allow read: if signedIn() && (request.auth.uid == uid || isAdmin());
+      allow write: if signedIn() && request.auth.uid == uid;
+    }
+
+    // ---------- гильдии (меняет только админ при одобрении отчёта) ----------
+    match /guilds/{key} {
+      allow read: if true;
+      allow write: if isAdmin();
+      match /history/{h} {
+        allow read: if true;
+        allow write: if isAdmin();
+      }
+    }
+
+    // ---------- подписки ----------
+    match /follows/{id} {
+      allow read: if true;
+      allow create: if signedIn()
+        && request.resource.data.followerUid == request.auth.uid
+        && owns(request.resource.data.follower)
+        && id == request.resource.data.follower + '__' + request.resource.data.target;
+      allow delete: if signedIn() && (resource.data.followerUid == request.auth.uid || isAdmin());
+    }
+
+    // ---------- уведомления: читает и чистит только получатель ----------
+    match /notifications/{id} {
+      allow create: if signedIn()
+        && request.resource.data.fromUid == request.auth.uid
+        && owns(request.resource.data.from);
+      allow read, delete: if signedIn() && resource.data.toUid == request.auth.uid;
+      allow update: if signedIn() && resource.data.toUid == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read']);
+    }
+
+    // ---------- видео и фото ----------
+    match /videos/{vid} {
+      allow read: if true;
+      allow create: if signedIn()
+        && request.resource.data.authorUid == request.auth.uid
+        && owns(request.resource.data.authorId)
+        && request.resource.data.likes == 0;
+      // удалить может только автор или админ
+      allow delete: if isAdmin() || (signedIn() && resource.data.authorUid == request.auth.uid);
+      // лайк: любой вошедший, но только +1 / -1 именно для себя
+      allow update: if signedIn()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes', 'likedBy'])
+        && request.resource.data.likes == request.resource.data.likedBy.size()
+        && (
+          (!(request.auth.uid in resource.data.likedBy)
+            && request.resource.data.likedBy == resource.data.likedBy.concat([request.auth.uid]))
+          ||
+          ((request.auth.uid in resource.data.likedBy)
+            && request.resource.data.likedBy == resource.data.likedBy.removeAll([request.auth.uid]))
+        );
+
+      match /comments/{cid} {
+        allow read: if true;
+        allow create: if signedIn()
+          && request.resource.data.authorUid == request.auth.uid
+          && owns(request.resource.data.authorId);
+        allow delete: if isAdmin() || (signedIn() && (resource.data.authorUid == request.auth.uid
+          || get(/databases/$(database)/documents/videos/$(vid)).data.authorUid == request.auth.uid));
+      }
+    }
+
+    // ---------- жалобы: видят и удаляют ТОЛЬКО админы ----------
+    match /complaints/{id} {
+      allow create: if signedIn()
+        && request.resource.data.fromUid == request.auth.uid
+        && owns(request.resource.data.fromId);
+      allow read, delete: if isAdmin();
+    }
+
+    // ---------- стримеры ----------
+    // ключ читает только тот профиль, которому админ его выдал
+    match /streamers/{key} {
+      allow get: if signedIn() && resource.data.playerUid == request.auth.uid;
+      allow list, write: if isAdmin();
+    }
+    match /streamer_public/{name} {
+      allow read: if true;
+      allow create, delete: if isAdmin();
+      // начать/закончить стрим и сменить аватар — только сам стример или админ
+      allow update: if isAdmin()
+        || (signedIn() && resource.data.playerUid == request.auth.uid
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['isLive', 'avatar', 'lastBeat', 'vkUrl'])
+            && request.resource.data.get('vkUrl', '').matches('(https://(www\\.)?vk\\.(com|ru)/[A-Za-z0-9_.\\-/?=&]{1,100})?'));
+    }
+    match /live_match/{name} {
+      allow read: if true;                       // нужен для OBS-оверлеев
+      allow write: if isAdmin() || ownsStreamer(name);
+    }
+
+    // ---------- подтверждение игрока стримером ----------
+    match /match_invites/{id} {
+      allow read: if signedIn() && (resource.data.playerUid == request.auth.uid
+        || ownsStreamer(resource.data.streamer) || isAdmin());
+      allow create: if ownsStreamer(request.resource.data.streamer)
+        && request.resource.data.status == 'pending'
+        && id == request.resource.data.streamer + '__' + request.resource.data.playerId;
+      // подтвердить или отклонить может только сам игрок
+      allow update: if signedIn() && resource.data.playerUid == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
+        && request.resource.data.status in ['confirmed', 'declined'];
+      allow delete: if isAdmin() || (signedIn() && ownsStreamer(resource.data.streamer));
+    }
+
+    // ---------- отчёты ----------
+    match /reports/{id} {
+      allow create: if signedIn() && ownsStreamer(request.resource.data.streamer)
+        && request.resource.data.status == 'pending';
+      allow read, update, delete: if isAdmin();
+    }
+
+    // ---------- тексты сайта (правила и т.п.): читают все, меняет только админ ----------
+    match /site_content/{id} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // uid забаненных игроков: свою запись видит сам игрок (чтобы понять причину), пишет только админ
+    match /banned_uids/{uid} {
+      allow read: if request.auth != null && (request.auth.uid == uid || request.auth.token.email in ['nockisy@gmail.com', 'dilenowpc@gmail.com']);
+      allow write: if isAdmin();
+    }
+
+    match /bans/{id} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+  }
+}

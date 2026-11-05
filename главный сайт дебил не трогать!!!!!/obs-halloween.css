@@ -1,0 +1,45 @@
+/* 🎃 ХЭЛЛОУИН-ТЕМА ДЛЯ OBS-ОВЕРЛЕЕВ (счёт, VS, статистика). Включается классом body.hw-obs, фон остаётся прозрачным.
+   Авто: с 15 октября по 7 ноября. Вручную: добавь к ссылке &hw=1 (включить) или &hw=0 (выключить). */
+body.hw-obs { --cyan: #ff8a1f; --pink: #b04dff; --green: #7bff5c; --grad-hot: linear-gradient(135deg, #ff4d1f, #7a1fd6); --grad: linear-gradient(135deg, #7a3fe0, #ff8a1f); }
+
+/* карточки: тёмно-фиолетовые с оранжевым свечением и «мерцающим» краем */
+body.hw-obs .pc, body.hw-obs .tm, body.hw-obs .gs, body.hw-obs .h2h { background-image: linear-gradient(160deg, rgba(40, 14, 28, .92), rgba(12, 5, 20, .94)); }
+body.hw-obs .pc.l { border-left-color: #ff8a1f; box-shadow: 0 0 38px rgba(255, 138, 31, .42), inset 0 0 26px rgba(255, 90, 0, .08); }
+body.hw-obs .pc.r { border-right-color: #b04dff; box-shadow: 0 0 38px rgba(176, 77, 255, .42), inset 0 0 26px rgba(122, 31, 214, .1); }
+body.hw-obs .tm.l { border-top-color: #ff8a1f; box-shadow: 0 0 36px rgba(255, 138, 31, .4); }
+body.hw-obs .tm.r { border-top-color: #b04dff; box-shadow: 0 0 36px rgba(176, 77, 255, .4); }
+body.hw-obs .tm.l .tmn { color: #ffb347; text-shadow: 0 0 14px rgba(255, 138, 31, .8); }
+body.hw-obs .tm.r .tmn { color: #d6a8ff; text-shadow: 0 0 14px rgba(176, 77, 255, .8); }
+body.hw-obs .vsb { background: linear-gradient(135deg, #ff4d1f, #7a1fd6); box-shadow: 0 0 34px rgba(255, 110, 20, .65); animation: obsFlicker 3.4s infinite; }
+body.hw-obs .sn { text-shadow: 0 0 18px rgba(255, 138, 31, .85); }
+body.hw-obs .sn.pop { text-shadow: 0 0 30px #ffd34a, 0 0 60px #ff7a1a; }
+body.hw-obs .gs { box-shadow: 0 0 44px rgba(255, 110, 20, .38), 0 0 70px rgba(122, 31, 214, .25); border-color: rgba(255, 138, 31, .55); }
+body.hw-obs .dots u.a { background: #ff8a1f; box-shadow: 0 0 10px #ff8a1f; }
+body.hw-obs .dots u.b { background: #b04dff; box-shadow: 0 0 10px #b04dff; }
+@keyframes obsFlicker { 0%, 100%, 46%, 52% { filter: none; } 48% { filter: brightness(.7); } 50% { filter: brightness(1.3); } }
+
+/* паутина в углах и низкий туман поверх прозрачного холста (только настоящий оверлей ?obs=…) */
+#obs-hw { position: fixed; inset: 0; z-index: 5; pointer-events: none; overflow: hidden; }
+#obs-hw .web { position: absolute; top: 0; width: 120px; height: 120px; opacity: .55; }
+#obs-hw .web.l { left: 0; } #obs-hw .web.r { right: 0; transform: scaleX(-1); }
+#obs-hw .fog { position: absolute; left: 0; right: 0; bottom: 0; height: 90px; background: radial-gradient(ellipse at 30% 100%, rgba(200, 170, 255, .22), transparent 60%), radial-gradient(ellipse at 75% 100%, rgba(255, 138, 31, .18), transparent 60%); animation: obsFog 14s ease-in-out infinite alternate; }
+@keyframes obsFog { from { transform: translateX(-4%); } to { transform: translateX(4%); } }
+
+/* облегчённый слой внутри блока «Предпросмотр» в кабинете стримера — та же тема, но вписана в рамку */
+#obs-hw-preview { position: absolute; inset: 0; z-index: -1; pointer-events: none; overflow: hidden; border-radius: inherit; }
+
+#obs-hw i, #obs-hw-preview i { position: absolute; will-change: transform, opacity; animation: obsRise var(--d) linear var(--dl) infinite; }
+#obs-hw i.e, #obs-hw-preview i.e { bottom: -10px; left: var(--x); width: calc(5px * var(--s)); height: calc(5px * var(--s)); border-radius: 50%; background: radial-gradient(circle, #fff3b8, #ff8a1f 60%, transparent 72%); box-shadow: 0 0 9px 1px rgba(255, 122, 26, .85); }
+
+/* настоящее привидение из CSS: купол + "глазки", без эмодзи */
+#obs-hw i.g, #obs-hw-preview i.g { bottom: -12%; left: var(--x); width: calc(22px * var(--s)); height: calc(26px * var(--s)); background: radial-gradient(circle at 50% 38%, rgba(235, 240, 255, .95), rgba(200, 210, 255, .55) 62%, transparent 78%); border-radius: 50% 50% 46% 46%; filter: blur(.3px) drop-shadow(0 0 7px rgba(190, 200, 255, .65)); }
+#obs-hw i.g::before, #obs-hw-preview i.g::before, #obs-hw i.g::after, #obs-hw-preview i.g::after { content: ''; position: absolute; top: 38%; width: 16%; height: 20%; border-radius: 50%; background: rgba(40, 24, 60, .65); }
+#obs-hw i.g::before, #obs-hw-preview i.g::before { left: 26%; }
+#obs-hw i.g::after, #obs-hw-preview i.g::after { right: 26%; }
+
+/* летучая мышь из чистого CSS (крылья через clip-path), без эмодзи */
+#obs-hw i.b, #obs-hw-preview i.b { top: var(--y); left: -10%; width: calc(26px * var(--s)); height: calc(14px * var(--s)); background: radial-gradient(ellipse at 50% 55%, #3a2060, #190c2c 75%); clip-path: polygon(0% 45%, 18% 8%, 34% 42%, 50% 20%, 66% 42%, 82% 8%, 100% 45%, 86% 75%, 50% 58%, 14% 75%); filter: drop-shadow(0 0 6px rgba(155, 93, 229, .8)); animation: obsFly var(--d) linear var(--dl) infinite, obsFlap .3s ease-in-out infinite alternate; }
+
+@keyframes obsRise { 0% { transform: translate3d(0, 0, 0); opacity: 0; } 12% { opacity: 1; } 100% { transform: translate3d(var(--dx), -105vh, 0); opacity: 0; } }
+@keyframes obsFly { 0% { transform: translate3d(0, 0, 0); } 33% { transform: translate3d(36vw, -40px, 0); } 66% { transform: translate3d(72vw, 30px, 0); } 100% { transform: translate3d(112vw, -20px, 0); } }
+@keyframes obsFlap { from { scale: 1 1; } to { scale: 1 .55; } }

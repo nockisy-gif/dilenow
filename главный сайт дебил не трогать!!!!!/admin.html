@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#05030d">
+    <title>Админ Панель — ELO SNS</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="fx.css">
+    <link rel="stylesheet" href="extras.css">
+    <link rel="stylesheet" href="premium.css">
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-storage-compat.js"></script>
+</head>
+<body>
+    <header class="site-header">
+        <div class="brand">
+            <span class="brand-title">🔥 АДМИН ПАНЕЛЬ</span>
+            <span class="brand-subtitle">ELO SNS</span>
+        </div>
+        <nav class="desktop-nav">
+            <a href="index.html">Главная</a>
+            <a href="streamer.html">Кабинет стримера</a>
+        </nav>
+    </header>
+
+    <main class="container" style="max-width: 860px">
+
+        <div class="card" id="admin-login">
+            <h3>🔐 Вход <span class="accent">администратора</span></h3>
+            <input type="email" id="admin-email" placeholder="Почта">
+            <input type="password" id="admin-pass" placeholder="Пароль">
+            <button class="btn-action" id="btn-admin-login">Войти</button>
+        </div>
+
+        <div id="admin-panel" style="display:none">
+            <div class="adm-tabs" id="adm-tabs">
+                <button data-t="reports" class="on">📩 Отчёты<i class="bd" id="bd-reports"></i></button>
+                <button data-t="streamers">📺 Стримеры</button>
+                <button data-t="players">👥 Игроки</button>
+                <button data-t="ann">♻ Аннуляция</button>
+                <button data-t="content">📝 Контент<i class="bd" id="bd-content"></i></button>
+                <button data-t="settings">⚙ Настройки</button>
+            </div>
+
+
+            <div class="card" data-tab="streamers">
+                <h3>🔑 Выдать <span class="accent">доступ стримеру</span></h3>
+                <p class="muted hint">Доступ привязывается к профилю игрока: войти в кабинет сможет только он, даже если другой узнает ключ. Игрок должен быть зарегистрирован и хотя бы раз войти на сайт.</p>
+                <input type="text" id="streamer-player" placeholder="Юзернейм профиля стримера (@username)">
+                <input type="text" id="streamer-secret" placeholder="Секретный ключ (без символа /)" autocapitalize="off" autocomplete="off" spellcheck="false">
+                <div class="re-btns"><button class="btn btn-ghost btn-sm" id="btn-gen-key" type="button">🎲 Сгенерировать ключ</button><button class="btn btn-ghost btn-sm" id="btn-copy-key" type="button">📋 Копировать</button></div>
+                <input type="url" id="streamer-yt" placeholder="Ссылка на YouTube-канал (https://youtube.com/@канал)">
+                <input type="text" id="streamer-vk" placeholder="VK профиль стримера (https://vk.com/… или @имя) — необязательно">
+                <p class="muted hint">Ссылка нужна для раздела «Стримеры»: когда стример в эфире, нажатие на его карточку ведёт сразу на живую трансляцию, иначе — на канал. Поддерживаются ссылки вида /@имя, /channel/UC…, /c/имя, /user/имя.</p>
+                <button class="btn-action" id="btn-add-key">Выдать доступ</button>
+                <hr class="divider">
+                <div id="streamers-admin"><p class="empty">Загрузка…</p></div>
+                <button class="btn btn-ghost btn-sm" id="btn-end-all" style="margin-top:12px">⏹ Снять LIVE со всех</button>
+            </div>
+
+            <div class="card" data-tab="players">
+                <h3>🪙 Монеты <span class="accent">игроков</span></h3>
+                <p class="muted hint">Монеты за матчи начисляются автоматически при одобрении отчёта (+10 победа, +2 хедшот, +5/+10/+15 за матчи «в плюсе», +10 эйс). Здесь можно выдать их вручную или включить игроку безлимитный баланс — например, себе, чтобы тестировать магазин.</p>
+                <input type="text" id="coin-player" placeholder="Юзернейм игрока (@username)">
+                <input type="number" id="coin-amount" placeholder="Сколько монет" min="1" inputmode="numeric">
+                <div class="re-btns">
+                    <button class="btn btn-green btn-sm" id="btn-coin-add">＋ Начислить</button>
+                    <button class="btn btn-red btn-sm" id="btn-coin-sub">− Списать</button>
+                    <button class="btn btn-green btn-sm" id="btn-candy-add">＋ 🍬 Конфеты</button>
+                    <button class="btn btn-red btn-sm" id="btn-candy-sub">− 🍬 Конфеты</button>
+                    <button class="btn btn-ghost btn-sm" id="btn-coin-check">Проверить баланс</button>
+                    <button class="btn btn-sm" id="btn-coin-inf">♾ Безлимит вкл/выкл</button>
+                </div>
+                <p class="muted" id="coin-status" style="margin-top:10px"></p>
+            </div>
+
+            <div class="card" data-tab="settings">
+                <h3>📞 Контакты и <span class="accent">группы</span></h3>
+                <p class="muted hint">Видно всем на странице «Поддержка». Принимаются ссылки vk.com / vk.ru и chat.whatsapp.com / wa.me (для VK можно просто @имя, для WhatsApp — номер). Пустые поля не показываются.</p>
+                <input type="text" id="lnk-support" placeholder="Тех-поддержка VK (по умолчанию @dilenow)">
+                <input type="text" id="lnk-vk1" placeholder="Группа VK №1">
+                <input type="text" id="lnk-vk2" placeholder="Группа VK №2">
+                <input type="text" id="lnk-wa1" placeholder="Группа WhatsApp №1 (https://chat.whatsapp.com/…)">
+                <input type="text" id="lnk-wa2" placeholder="Группа WhatsApp №2">
+                <button class="btn-action" id="btn-links-save">💾 Сохранить ссылки</button>
+            </div>
+
+            <div class="card" data-tab="settings">
+                <h3>☁️ Хранилище <span class="accent">файлов (видео и фото)</span></h3>
+                <p class="muted hint">Если видео и жалобы с видео не загружаются — Firebase Storage не включён (нужен тариф Blaze). Бесплатное решение: cloudinary.com → регистрация → Dashboard: скопируй «Cloud name». Затем Settings → Upload → Upload presets → Add preset → Signing mode: <b>Unsigned</b> → Save, скопируй имя пресета. Вставь оба значения сюда — и всё заработает у всех, без правки кода.</p>
+                <input type="text" id="cld-name" placeholder="Cloud name" autocapitalize="off" autocomplete="off">
+                <input type="text" id="cld-preset" placeholder="Upload preset (Unsigned)" autocapitalize="off" autocomplete="off">
+                <button class="btn-action" id="btn-cld-save">💾 Сохранить хранилище</button>
+            </div>
+
+            <div class="card" data-tab="streamers">
+                <h3>📡 Автоопределение <span class="accent">эфира YouTube</span></h3>
+                <p class="muted hint">Чтобы раздел «Стримеры» сам показывал «В ЭФИРЕ», когда у стримера идёт трансляция на YouTube, вставь ключ YouTube Data API v3 (Google Cloud → APIs &amp; Services → Credentials → Create API key; включи «YouTube Data API v3», в ограничениях ключа укажи адрес твоего сайта). Проверка идёт раз в ~2,5 минуты и тратит мало квоты. Без ключа эфир определяется только по открытому кабинету стримера.</p>
+                <input type="text" id="yt-key" placeholder="YouTube API key" autocapitalize="off" autocomplete="off" spellcheck="false">
+                <button class="btn-action" id="btn-ytkey-save">💾 Сохранить ключ</button>
+            </div>
+
+            <div class="card" data-tab="content">
+                <h3>🏆 Награды <span class="accent">ТОП-3 месяца</span></h3>
+                <p class="muted hint">17 числа в 00:00 (UTC+6) статистика месяца обнуляется. Игроки ТОП-1/2/3 прошлого месяца автоматически получают эксклюзивные баннер, рамку и анимацию на весь новый месяц (это запускается само, когда ты открываешь админку или одобряешь отчёт). Кнопка ниже пересчитывает награды вручную.</p>
+                <div id="awards-info" class="muted">Загрузка…</div>
+                <button class="btn btn-sm" id="btn-awards" style="margin-top:10px">🔄 Пересчитать награды</button>
+            </div>
+
+            <div class="card" data-tab="settings">
+                <h3>⚡ Система <span class="accent">ELO</span></h3>
+                <p class="muted hint">ELO игрока копится бесконечно и не обнуляется. За победу — <b>+25</b> плюс <b>+10</b> за килл и <b>+5</b> за хедшот; за поражение (в т.ч. ТП) — <b>−10</b>, килы при поражении ELO не поднимают. Числа — в начале блока ELO в admin.js.</p>
+            </div>
+
+            <div class="card" id="rules" data-tab="content">
+                <h3>📜 <span class="accent">Правила</span> сайта</h3>
+                <p class="muted hint">Эти пункты видят все игроки в разделе «Правила». Строки, начинающиеся с «- », превращаются в маркированный список. Меняй в любое время — на сайте обновится сразу.</p>
+                <div id="rules-editor"><p class="empty">Загрузка…</p></div>
+                <div class="re-btns">
+                    <button class="btn btn-ghost btn-sm" id="btn-rule-add">＋ Добавить пункт</button>
+                    <button class="btn btn-action" id="btn-rules-save" style="width:auto;padding:10px 22px">💾 Сохранить правила</button>
+                </div>
+            </div>
+
+            <div class="card" data-tab="reports">
+                <h3>⚔ <span class="accent">Зарубы</span> на сайте</h3>
+                <p class="muted hint">Каждый одобренный матч автоматически попадает во вкладку «Зарубы» на главном сайте: гильдии, состав, этапы, счёт, кто кого победил, дата окончания и ссылка на YouTube стримера. Если у тебя уже есть одобренные отчёты, добавленные до этого обновления, — перенеси их кнопкой ниже (повторное нажатие ничего не дублирует).</p>
+                <div class="re-btns"><button class="btn btn-sm" id="btn-zb-backfill" type="button">📥 Перенести одобренные отчёты в «Зарубы»</button></div>
+                <p class="muted" id="zb-status" style="margin-top:10px"></p>
+            </div>
+
+            <div class="card" data-tab="reports">
+                <h3>📩 Отчёты матчей <span class="accent">на проверку</span></h3>
+                <p class="muted hint">✅ — игрок подтвердил участие в своём профиле, ⚠️ — не нажал «подтвердить» (рейтинг всё равно засчитывается при «Одобрить»), 👤 — гость (рейтинг и статистика не меняются).</p>
+                <div id="reports-list"><p class="empty">Загрузка отчётов...</p></div>
+            </div>
+
+            <div class="card" data-tab="reports">
+                <h3>🛡️ Жалобы <span class="accent">игроков</span></h3>
+                <div id="complaints-list"><p class="empty">Загрузка…</p></div>
+            </div>
+
+            <div class="card" data-tab="content">
+                <h3>🎬 Модерация <span class="accent">публикаций</span></h3>
+                <div id="videos-admin"><p class="empty">Загрузка…</p></div>
+            </div>
+
+            <div class="card" data-tab="players">
+                <h3>📈 Рейтинг игрока <span class="accent">— ручная корректировка</span></h3>
+                <p class="muted hint">Если автоматический рейтинг посчитал неверно — поправь его вручную. Укажи игрока и <b>на сколько изменить</b> показатели (можно с минусом, например −20), а главное — <b>причину</b>: она сохранится в журнале ниже и будет видна игроку в истории его матчей. Победы и поражения также меняют число сыгранных матчей.</p>
+                <input type="text" id="rt-player" placeholder="Юзернейм или ник игрока (@username)">
+                <div class="adm-grid">
+                    <label>⚡ ELO<input type="number" id="rt-elo" placeholder="0" inputmode="numeric"></label>
+                    <label>🏆 Победы<input type="number" id="rt-win" placeholder="0" inputmode="numeric"></label>
+                    <label>💔 Поражения<input type="number" id="rt-loss" placeholder="0" inputmode="numeric"></label>
+                    <label>🔫 Киллы<input type="number" id="rt-k" placeholder="0" inputmode="numeric"></label>
+                    <label>🎯 Хедшоты<input type="number" id="rt-hs" placeholder="0" inputmode="numeric"></label>
+                    <label>⭐ Эйсы<input type="number" id="rt-ace" placeholder="0" inputmode="numeric"></label>
+                </div>
+                <input type="text" id="rt-reason" placeholder="За что (обязательно): например, «киллы и хедшоты за матч 12.10, не засчитались»">
+                <label class="opt-line"><input type="checkbox" id="rt-month" checked> Учесть и в рейтинге «За месяц»</label>
+                <div class="re-btns">
+                    <button class="btn btn-ghost btn-sm" id="btn-rt-check" type="button">Показать данные игрока</button>
+                    <button class="btn-action" id="btn-rt-apply" type="button" style="width:auto;padding:10px 22px">✔ Применить</button>
+                </div>
+                <p class="muted" id="rt-status" style="margin-top:10px"></p>
+                <h4 style="margin:16px 0 8px">Журнал корректировок</h4>
+                <div id="rt-log"><p class="empty">Пока пусто</p></div>
+            </div>
+
+            <div class="card" data-tab="ann">
+                <h3>♻ Аннуляция <span class="accent">матчей и статистики</span></h3>
+                <p class="muted hint">Выбери игрока — ниже появятся все его матчи, <b>каждая победа и поражение над каждым соперником отдельной строкой</b>. Отметь нужные и нажми «Аннулировать выбранные»: у игрока вернутся назад ELO, победы, поражения, киллы, хедшоты и эйсы этого матча, серия побед пересчитается, запись исчезнет из истории. Командный матч с несколькими соперниками аннулируется целиком. Для полной очистки есть кнопки сброса ниже.</p>
+                <input type="text" id="ann-player" placeholder="Юзернейм или ник игрока (@username)" autocapitalize="off" autocorrect="off" spellcheck="false">
+                <div class="re-btns">
+                    <button class="btn btn-ghost btn-sm" id="btn-ann-load" type="button">📂 Показать матчи игрока</button>
+                </div>
+                <p class="muted" id="ann-status" style="margin:10px 0"></p>
+                <div id="ann-list"></div>
+                <div class="re-btns" id="ann-actions" hidden>
+                    <button class="btn btn-ghost btn-sm" id="btn-ann-all-check" type="button">☑ Выбрать все</button>
+                    <button class="btn btn-red btn-sm" id="btn-ann-sel" type="button">♻ Аннулировать выбранные</button>
+                </div>
+                <hr class="divider">
+                <div class="re-btns">
+                    <button class="btn btn-ghost btn-sm" id="btn-ann-month" type="button">📅 Обнулить статистику месяца</button>
+                    <button class="btn btn-red btn-sm" id="btn-ann-reset" type="button">⚠ Обнулить всю статистику и историю</button>
+                </div>
+                <p class="muted hint" style="margin-top:8px">Полный сброс: ELO вернётся к 500, победы, поражения, игры, киллы, хедшоты, эйсы, серии и история станут нулями. Монеты, покупки и профиль не трогаются.</p>
+            </div>
+
+            <div class="card danger" data-tab="ann">
+                <h3 style="color:var(--red)">🧹 Общая аннуляция <span class="accent">статистики всех игроков</span></h3>
+                <p class="muted hint"><b>За месяц</b> — у всех игроков и гильдий обнуляются победы, поражения, матчи, киллы, хедшоты и ELO месяца (рейтинг «За месяц» начинается заново). <b>За всё время</b> — полный сброс: ELO всех игроков возвращается к 500, победы, поражения, матчи, киллы, хедшоты, эйсы, серии, история матчей и рейтинг гильдий обнуляются. Монеты, покупки, профили, видео и фото не трогаются. Отменить нельзя.</p>
+                <label class="opt-line"><input type="checkbox" id="gr-zb" checked> Также очистить вкладку «Зарубы» (для месяца — только зарубы текущего месяца)</label>
+                <div class="re-btns">
+                    <button class="btn btn-red btn-sm" id="btn-gr-month" type="button">📅 Аннулировать ЗА МЕСЯЦ у всех</button>
+                    <button class="btn btn-red btn-sm" id="btn-gr-all" type="button">⚠ Аннулировать ЗА ВСЁ ВРЕМЯ у всех</button>
+                </div>
+                <p class="muted" id="gr-status" style="margin-top:10px"></p>
+            </div>
+
+            <div class="card danger" data-tab="players">
+                <h3 style="color:var(--red)">🗑 Удаление <span class="accent">игроков</span></h3>
+                <p class="muted hint">Для тех, кто зарегистрировался несколько раз или попросил удалить профиль. Удаляется профиль, история матчей и «бронь» имени — после этого можно зарегистрироваться заново под тем же ником. Рейтинг гильдий и опубликованные видео не затрагиваются. Это нельзя отменить.</p>
+                <input type="text" id="del-search" placeholder="Поиск по нику или юзернейму…" autocomplete="off">
+                <div id="del-list"><p class="empty">Начни вводить ник — или нажми «Показать всех»</p></div>
+                <div class="re-btns"><button class="btn btn-ghost btn-sm" id="btn-del-all" type="button">👥 Показать всех</button></div>
+            </div>
+
+            <div class="card danger" data-tab="players">
+                <h3 style="color:var(--red)">🚫 Бан игрока</h3>
+                <p class="muted hint">Бан закрывает вход под этим юзернеймом, обнуляет его статистику, монеты и историю, убирает из всех рейтингов и блокирует запись в базу.</p>
+                <input type="text" id="ban-player-name" placeholder="Юзернейм или имя игрока">
+                <input type="text" id="ban-player-reason" placeholder="Причина">
+                <button class="btn-action btn-red" id="btn-ban">Забанить</button>
+                <div id="bans-admin" style="margin-top:12px"></div>
+            </div>
+
+            <button class="btn-action btn-ghost" id="btn-admin-logout">Выйти</button>
+        </div>
+    </main>
+
+    <script src="firebase-config.js"></script>
+    <script src="admin.js"></script>
+    <script src="fx.js"></script>
+    <script src="premium.js"></script>
+</body>
+</html>

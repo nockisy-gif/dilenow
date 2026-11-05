@@ -1,0 +1,151 @@
+/* ==========================================================
+   🎃 ХЭЛЛОУИН — сезонная тема (включается классом body.hw)
+   Выключатель — кнопка 🎃 в шапке; автоматически с 15 окт по 5 ноя.
+   ========================================================== */
+body.hw {
+    --bg: #0a0408; --bg-soft: #160a10;
+    --cyan: #ff8a1f; --violet: #9b5de5; --pink: #ff4d1f; --green: #7bff5c; --gold: #ffb347;
+    --grad: linear-gradient(135deg, #7a3fe0 0%, #ff8a1f 100%);
+    --grad-hot: linear-gradient(135deg, #ff4d1f 0%, #7a1fd6 100%);
+    background: radial-gradient(ellipse at 50% -10%, rgba(255, 110, 20, .16), transparent 55%), radial-gradient(ellipse at 100% 100%, rgba(122, 31, 214, .22), transparent 50%), #07030a;
+}
+body.hw .site-header { background: rgba(16, 7, 12, .78); border-bottom: 1px solid rgba(255, 138, 31, .45); box-shadow: 0 6px 30px rgba(255, 110, 20, .18); }
+body.hw .card { background: linear-gradient(160deg, rgba(34, 14, 24, .84), rgba(10, 5, 14, .9)); border-color: rgba(255, 138, 31, .28); }
+body.hw .card::after { border-color: #9b5de5; filter: drop-shadow(0 0 5px #9b5de5); }
+body.hw .hero { border-color: rgba(255, 138, 31, .55); }
+body.hw .hero::before { background: repeating-linear-gradient(0deg, transparent 0 3px, rgba(255, 138, 31, .04) 3px 4px); }
+body.hw h1, body.hw h2, body.hw h3, body.hw h4 { text-shadow: 0 0 14px rgba(255, 110, 20, .5); }
+body.hw .bottom-nav { border-top: 1px solid rgba(255, 138, 31, .5); box-shadow: 0 -6px 24px rgba(255, 110, 20, .25); background: rgba(14, 6, 10, .92); }
+body.hw th { text-shadow: 0 0 8px rgba(255, 138, 31, .6); border-bottom-color: rgba(255, 138, 31, .4); }
+body.hw tbody tr:hover td { background: rgba(255, 138, 31, .07); }
+body.hw input:focus, body.hw select:focus, body.hw textarea:focus { box-shadow: 0 0 0 2px rgba(255, 138, 31, .35), 0 0 18px rgba(255, 138, 31, .28); }
+body.hw .btn-ghost:hover { border-color: #ff8a1f; box-shadow: 0 0 16px rgba(255, 138, 31, .5); }
+body.hw .btn:not(.btn-ghost):not(.btn-sm), body.hw .btn-action { animation-name: hwPulse; }
+@keyframes hwPulse {
+    0%, 100% { box-shadow: 0 0 10px rgba(122, 63, 224, .6), 0 0 24px rgba(122, 63, 224, .28); }
+    50% { box-shadow: 0 0 14px rgba(255, 138, 31, .8), 0 0 34px rgba(255, 138, 31, .38); }
+}
+body.hw .nav-btn.active { animation-name: hwNav; }
+@keyframes hwNav { from { box-shadow: 0 0 10px rgba(122, 63, 224, .65); } to { box-shadow: 0 0 20px rgba(255, 138, 31, .75); } }
+body.hw .nav-btn:hover { text-shadow: 0 0 10px #ff8a1f; }
+body.hw .hall-of-fame { animation-name: hwHof; }
+@keyframes hwHof { from { box-shadow: 0 0 22px rgba(255, 138, 31, .2); } to { box-shadow: 0 0 46px rgba(122, 63, 224, .4); } }
+body.hw .brand-title { animation: hwFlicker 4.5s infinite; }
+@keyframes hwFlicker { 0%, 100% { filter: drop-shadow(0 0 6px rgba(255, 138, 31, .7)); } 46% { filter: drop-shadow(0 0 6px rgba(255, 138, 31, .7)); } 48% { filter: drop-shadow(0 0 1px rgba(255, 138, 31, .2)); } 50% { filter: drop-shadow(0 0 10px rgba(255, 138, 31, .9)); } 53% { filter: drop-shadow(0 0 2px rgba(255, 138, 31, .3)); } }
+body.hw .shop-tabs .hw-tab { border-color: rgba(255, 138, 31, .7); color: #ffb347; animation: hwTab 2s ease-in-out infinite alternate; }
+@keyframes hwTab { to { box-shadow: 0 0 14px rgba(255, 138, 31, .7); } }
+.hw-hint { border-color: rgba(255, 138, 31, .5) !important; background: linear-gradient(120deg, rgba(255, 138, 31, .14), rgba(122, 31, 214, .14)) !important; }
+
+/* ---- паутина в углах шапки и экрана ---- */
+.hw-web { position: fixed; z-index: 99; width: 150px; height: 150px; pointer-events: none; opacity: .5; display: none; }
+body.hw .hw-web { display: block; }
+.hw-web.tl { top: 0; left: 0; }
+.hw-web.tr { top: 0; right: 0; transform: scaleX(-1); }
+body.hw .site-header { z-index: 100; }
+
+/* ---- туман снизу ---- */
+.hw-fog { position: fixed; left: 0; right: 0; bottom: 0; height: 22vh; z-index: 1; pointer-events: none; display: none;
+    background: linear-gradient(0deg, rgba(122, 63, 224, .16), transparent); }
+body.hw .hw-fog { display: block; }
+.hw-fog::before, .hw-fog::after { content: ''; position: absolute; inset: auto -20% 0; height: 100%; background: radial-gradient(ellipse at 30% 100%, rgba(200, 170, 255, .14), transparent 60%), radial-gradient(ellipse at 75% 100%, rgba(255, 138, 31, .1), transparent 60%); animation: hwFog 18s ease-in-out infinite alternate; }
+.hw-fog::after { animation-duration: 27s; animation-direction: alternate-reverse; opacity: .7; }
+@keyframes hwFog { from { transform: translateX(-6%); } to { transform: translateX(6%); } }
+
+/* ---- слой интерактива ---- */
+#hw-layer { position: fixed; inset: 0; z-index: 9000; pointer-events: none; overflow: hidden; display: none; }
+body.hw #hw-layer { display: block; }
+.hw-ghost { position: absolute; left: 0; top: 0; font-size: 38px; line-height: 1; will-change: transform; opacity: .82; filter: drop-shadow(0 0 10px rgba(190, 200, 255, .85)); transition: opacity .3s, filter .3s; user-select: none; }
+.hw-ghost.scared { opacity: .95; filter: drop-shadow(0 0 16px rgba(255, 138, 31, .95)); }
+.hw-ghost .bubble { position: absolute; left: 50%; bottom: 100%; transform: translateX(-50%); white-space: nowrap; font: 800 12px 'Inter', sans-serif; color: #1a0a00; background: #ffb347; padding: 3px 8px; border-radius: 10px; opacity: 0; transition: opacity .2s; }
+.hw-ghost.scared .bubble { opacity: 1; }
+/* ---- 3D-тыквы: объём из 9 вращённых эллипсов, лицо светится изнутри ---- */
+.hw-pet { position: fixed; bottom: 8px; width: 96px; height: 96px; z-index: 9001; pointer-events: auto; cursor: pointer; display: none; perspective: 520px; --R: 44px; }
+body.hw .hw-pet { display: block; }
+.hw-pet.l { left: 10px; } .hw-pet.r { right: 10px; }
+.pk-glow { position: absolute; inset: -26%; border-radius: 50%; background: radial-gradient(circle, rgba(255, 150, 30, .5), rgba(255, 90, 0, .12) 55%, transparent 70%); animation: pkGlow 2.2s ease-in-out infinite alternate; pointer-events: none; }
+.hw-pet.near .pk-glow { background: radial-gradient(circle, rgba(255, 190, 60, .85), rgba(255, 110, 0, .25) 55%, transparent 72%); }
+.pk-shadow { position: absolute; left: 10%; right: 10%; bottom: -8px; height: 14px; border-radius: 50%; background: rgba(0, 0, 0, .55); filter: blur(5px); animation: pkShadow 3.4s ease-in-out infinite; }
+.pk-stage { position: absolute; inset: 0; transform-style: preserve-3d; animation: pkFloat 3.4s ease-in-out infinite; }
+.hw-pet.r .pk-stage { animation-delay: -1.7s; }
+.pk-body { position: absolute; inset: 9% 3% 0; transform-style: preserve-3d; transform: rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)); }
+.pk-ribs { position: absolute; inset: 0; transform-style: preserve-3d; }
+.rib { position: absolute; left: 0; right: 0; top: 14%; bottom: 0; border-radius: 50%; transform: rotateY(var(--r)); backface-visibility: visible;
+    background: radial-gradient(ellipse at 36% 28%, #ffc47a 0%, #ff8a22 32%, #e0600a 62%, #9c3300 100%); filter: brightness(var(--sh));
+    box-shadow: inset 0 -10px 18px rgba(90, 20, 0, .55), inset 0 6px 12px rgba(255, 220, 150, .35); border: 1px solid rgba(120, 40, 0, .5); }
+.pk-core { position: absolute; left: 10%; right: 10%; top: 24%; bottom: 8%; border-radius: 50%; background: #c24a08; transform: translateZ(-4px); }
+.pk-face { position: absolute; inset: 14% 0 0; transform: translateZ(calc(var(--R) * .93)); pointer-events: none; }
+.pk-face .eye { position: absolute; top: 30%; width: 19%; height: 20%; background: #ffe36b; clip-path: polygon(50% 0, 100% 100%, 0 100%); filter: drop-shadow(0 0 5px #ffb000); animation: pkFlame 1.6s ease-in-out infinite alternate; }
+.pk-face .eye.l { left: 22%; transform: rotate(-8deg); } .pk-face .eye.r { right: 22%; transform: rotate(8deg); }
+.pk-face .nose { position: absolute; left: 46%; top: 52%; width: 8%; height: 9%; background: #ffe36b; clip-path: polygon(50% 0, 100% 100%, 0 100%); filter: drop-shadow(0 0 4px #ffb000); }
+.pk-face .mouth { position: absolute; left: 22%; right: 22%; top: 60%; height: 24%; background: #ffe36b; filter: drop-shadow(0 0 6px #ffb000); animation: pkFlame 1.6s ease-in-out infinite alternate-reverse;
+    clip-path: polygon(0 20%, 12% 60%, 22% 30%, 34% 78%, 46% 38%, 54% 80%, 66% 34%, 78% 70%, 88% 28%, 100% 18%, 92% 62%, 76% 100%, 50% 88%, 24% 100%, 8% 66%); }
+.pk-stem { position: absolute; left: 41%; top: -4%; width: 18%; height: 22%; transform: translateZ(2px) rotate(9deg); transform-origin: 50% 100%; }
+.pk-stem i { position: absolute; inset: 0; border-radius: 3px 4px 6px 6px; background: linear-gradient(90deg, #2f5f17, #6bbf3a 45%, #2f5f17); }
+.pk-stem em { position: absolute; left: 70%; top: 18%; width: 90%; height: 60%; border: 3px solid #5fae33; border-left-color: transparent; border-bottom-color: transparent; border-radius: 50%; transform: rotate(30deg); }
+.hw-pet.near .pk-face .eye, .hw-pet.near .pk-face .mouth { filter: drop-shadow(0 0 10px #ffd34a); }
+.hw-pet.jump { animation: hwJump .55s cubic-bezier(.3, 1.4, .5, 1); }
+.hw-pet.jump .pk-body { animation: pkSpin .7s cubic-bezier(.3, 1.2, .5, 1); }
+.hw-pet .say { position: absolute; left: 50%; bottom: 100%; transform: translateX(-50%) scale(.6); opacity: 0; white-space: nowrap; font: 800 12px 'Inter', sans-serif; color: #1a0a00; background: #ffb347; padding: 3px 9px; border-radius: 10px; transition: .2s; pointer-events: none; }
+.hw-pet.jump .say { opacity: 1; transform: translateX(-50%) scale(1); }
+@keyframes hwJump { 0% { transform: translateY(0) scale(1); } 35% { transform: translateY(-48px) scale(1.12); } 70% { transform: translateY(0) scale(.94, 1.06); } 100% { transform: none; } }
+@keyframes pkFloat { 0%, 100% { transform: translateY(0) rotateY(-16deg); } 50% { transform: translateY(-7px) rotateY(16deg); } }
+@keyframes pkShadow { 0%, 100% { transform: scaleX(1); opacity: .55; } 50% { transform: scaleX(.78); opacity: .32; } }
+@keyframes pkGlow { from { opacity: .65; transform: scale(.94); } to { opacity: 1; transform: scale(1.06); } }
+@keyframes pkFlame { from { opacity: .82; } to { opacity: 1; } }
+@keyframes pkSpin { from { transform: rotateX(var(--rx, 0deg)) rotateY(calc(var(--ry, 0deg) + 360deg)); } to { transform: rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)); } }
+
+/* ---- фоновые частицы только внутри главного экрана (hero): угли, конфеты, духи, споры, мыши ---- */
+#hw-ambient { position: absolute; inset: 0; z-index: -1; pointer-events: none; overflow: hidden; display: none; border-radius: inherit; }
+body.hw #hw-ambient { display: block; }
+.hw-amb { position: absolute; left: var(--x); bottom: -8vh; will-change: transform, opacity; animation: hwRise var(--d) linear var(--dl) infinite; user-select: none; }
+.hw-ember { width: calc(5px * var(--s)); height: calc(5px * var(--s)); border-radius: 50%; background: radial-gradient(circle, #fff3b8, #ff8a1f 60%, transparent 72%); box-shadow: 0 0 9px 1px rgba(255, 122, 26, .85); }
+.hw-spore { width: calc(4px * var(--s)); height: calc(4px * var(--s)); border-radius: 50%; background: #c9a0ff; box-shadow: 0 0 10px 2px rgba(155, 93, 229, .8); animation-duration: calc(var(--d) * 1.5); }
+/* настоящее привидение-«дымка», без эмодзи: вытянутый силуэт с лёгкими «глазками» */
+.hw-wisp { width: calc(30px * var(--s)); height: calc(46px * var(--s)); border-radius: 50% 50% 46% 46%; background: radial-gradient(ellipse at 50% 28%, rgba(225, 235, 255, .55), rgba(180, 200, 255, .12) 55%, transparent 72%); filter: blur(2.5px); animation-name: hwWisp; animation-duration: calc(var(--d) * 1.6); }
+.hw-wisp::before, .hw-wisp::after { content: ''; position: absolute; top: 30%; width: 12%; height: 10%; border-radius: 50%; background: rgba(40, 24, 60, .5); }
+.hw-wisp::before { left: 32%; } .hw-wisp::after { right: 32%; }
+/* маленькое круглоголовое привидение (CSS-форма вместо эмодзи): купол + 2 глаза */
+.hw-spook { bottom: -12%; width: calc(22px * var(--s)); height: calc(26px * var(--s)); background: radial-gradient(circle at 50% 36%, rgba(238, 242, 255, .96), rgba(205, 214, 255, .5) 62%, transparent 78%); border-radius: 50% 50% 46% 46%; filter: drop-shadow(0 0 7px rgba(190, 200, 255, .6)); }
+.hw-spook::before, .hw-spook::after { content: ''; position: absolute; top: 38%; width: 16%; height: 20%; border-radius: 50%; background: rgba(40, 24, 60, .65); }
+.hw-spook::before { left: 26%; } .hw-spook::after { right: 26%; }
+/* летучая мышь из чистого CSS (крылья через clip-path), без эмодзи */
+.hw-batfly { bottom: auto; top: var(--y); left: -10%; width: calc(26px * var(--s)); height: calc(14px * var(--s)); background: radial-gradient(ellipse at 50% 55%, #3a2060, #190c2c 75%); clip-path: polygon(0% 45%, 18% 8%, 34% 42%, 50% 20%, 66% 42%, 82% 8%, 100% 45%, 86% 75%, 50% 58%, 14% 75%); filter: drop-shadow(0 0 6px rgba(155, 93, 229, .8)); animation: hwFly calc(var(--d) * .8) linear var(--dl) infinite, hwFlap .32s ease-in-out infinite alternate; }
+@keyframes hwRise { 0% { transform: translate3d(0, 0, 0) scale(.6); opacity: 0; } 12% { opacity: 1; } 100% { transform: translate3d(var(--dx), -112vh, 0) scale(1.1); opacity: 0; } }
+@keyframes hwWisp { 0% { transform: translate3d(0, 0, 0); opacity: 0; } 15%, 80% { opacity: .85; } 50% { transform: translate3d(calc(var(--dx) * -1), -56vh, 0) scale(1.2); } 100% { transform: translate3d(var(--dx), -112vh, 0); opacity: 0; } }
+@keyframes hwFly { 0% { transform: translate3d(0, 0, 0); } 25% { transform: translate3d(28vw, -9vh, 0); } 50% { transform: translate3d(58vw, 4vh, 0); } 75% { transform: translate3d(86vw, -7vh, 0); } 100% { transform: translate3d(116vw, 3vh, 0); } }
+@keyframes hwFlap { from { scale: 1 1; } to { scale: 1 .55; } }
+
+/* ---- доп. анимация фона главного экрана (hero) в теме: пульсирующая «луна» и мягкий дрейф ---- */
+body.hw .hero::after {
+    content: '';
+    position: absolute;
+    z-index: -1;
+    top: -70px;
+    right: -50px;
+    width: 230px;
+    height: 230px;
+    border-radius: 50%;
+    pointer-events: none;
+    background: radial-gradient(circle at 35% 35%, rgba(255, 210, 140, .55), rgba(255, 140, 40, .16) 52%, transparent 74%);
+    filter: blur(1px);
+    animation: hwMoon 6s ease-in-out infinite alternate;
+}
+@keyframes hwMoon { from { transform: translateY(0) scale(1); opacity: .85; } to { transform: translateY(16px) scale(1.07); opacity: 1; } }
+
+/* ---- кнопка-переключатель ---- */
+.hw-toggle { flex: none; width: 38px; height: 38px; border-radius: 12px; border: 1px solid rgba(255, 138, 31, .6); background: rgba(255, 138, 31, .12); font-size: 20px; line-height: 1; cursor: pointer; transition: .2s; filter: grayscale(1) opacity(.6); }
+body.hw .hw-toggle { filter: none; box-shadow: 0 0 14px rgba(255, 138, 31, .55); }
+.hw-toggle:hover { transform: scale(1.1) rotate(-8deg); }
+.hw-toggle.fixed { position: fixed; top: 10px; right: 10px; z-index: 9100; }
+
+@media (max-width: 900px) {
+    .hw-pet { display: none !important; }
+    .hw-web { width: 100px; height: 100px; }
+    .hw-ghost { font-size: 30px; }
+}
+@media (prefers-reduced-motion: reduce) {
+    #hw-ambient { display: none !important; }
+    .pk-stage, .pk-glow, .pk-shadow, .pk-face .eye, .pk-face .mouth { animation: none !important; }
+    body.hw .brand-title, body.hw .btn, body.hw .btn-action { animation: none !important; }
+    .hw-fog::before, .hw-fog::after { animation: none; }
+}

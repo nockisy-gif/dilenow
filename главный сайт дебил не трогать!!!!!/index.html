@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#05030d">
+    <meta name="color-scheme" content="dark">
+    <title>ELO SNS TRACKER</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="fx.css">
+    <link rel="stylesheet" href="extras.css">
+    <link rel="stylesheet" href="pframes.css">
+    <link rel="stylesheet" href="halloween.css">
+    <link rel="stylesheet" href="candy.css">
+    <link rel="stylesheet" href="premium.css">
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-storage-compat.js"></script>
+</head>
+<body class="ff-side">
+
+    <!-- ===== PREMIUM: иконки (SVG-спрайт) ===== -->
+    <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+        <defs>
+            <linearGradient id="ffg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#7a2cff"/><stop offset=".55" stop-color="#b05cff"/><stop offset="1" stop-color="#ff4fd8"/></linearGradient>
+            <symbol id="i-home" viewBox="0 0 24 24"><path d="M3 11.5 12 4l9 7.5"/><path d="M5 10v10h5v-6h4v6h5V10"/></symbol>
+            <symbol id="i-crown" viewBox="0 0 24 24"><path d="M3 8l4.5 4L12 5l4.5 7L21 8l-2 11H5L3 8z"/></symbol>
+            <symbol id="i-cal" viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/></symbol>
+            <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/></symbol>
+            <symbol id="i-tv" viewBox="0 0 24 24"><rect x="3" y="4.5" width="18" height="12.5" rx="2.5"/><path d="M10 8.5v4.5l4-2.25-4-2.25zM8 21h8"/></symbol>
+            <symbol id="i-swords" viewBox="0 0 24 24"><path d="M4 4l11 11M20 4 9 15"/><path d="M13 17l4 4M11 17l-4 4M2.5 15.5l3 3M21.5 15.5l-3 3"/></symbol>
+            <symbol id="i-cart" viewBox="0 0 24 24"><path d="M3 4h2.5l2 11h10.5l2-8H7"/><circle cx="9.5" cy="19.5" r="1.4"/><circle cx="17" cy="19.5" r="1.4"/></symbol>
+            <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4.5 20c.8-4 3.6-6 7.5-6s6.7 2 7.5 6"/></symbol>
+            <symbol id="i-scroll" viewBox="0 0 24 24"><path d="M7 3.5h10a2 2 0 0 1 2 2V20l-3-2-2 2-2-2-2 2-2-2-3 2V5.5a2 2 0 0 1 2-2z"/><path d="M9 8h6M9 12h6"/></symbol>
+            <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3 4.5 6v5.5c0 4.6 3.1 8 7.5 9.5 4.4-1.5 7.5-4.9 7.5-9.5V6L12 3z"/><path d="M12 8v4M12 15v.5"/></symbol>
+            <symbol id="i-chat" viewBox="0 0 24 24"><path d="M4 5.5h16a1 1 0 0 1 1 1V16a1 1 0 0 1-1 1h-8l-5 4v-4H4a1 1 0 0 1-1-1V6.5a1 1 0 0 1 1-1z"/></symbol>
+            <symbol id="i-ban" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="m6 6 12 12"/></symbol>
+            <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></symbol>
+            <symbol id="i-users" viewBox="0 0 24 24"><circle cx="9" cy="8.5" r="3.5"/><path d="M2.5 20c.6-3.6 3-5.5 6.5-5.5s5.9 1.9 6.5 5.5"/><circle cx="17.5" cy="9.5" r="2.6"/><path d="M17.5 14.5c2.6 0 4 1.6 4.5 4.5"/></symbol>
+            <symbol id="i-film" viewBox="0 0 24 24"><rect x="3" y="4.5" width="18" height="15" rx="2.5"/><path d="M10 9v6l5-3-5-3z"/></symbol>
+            <symbol id="i-guild" viewBox="0 0 24 24"><path d="M5 20V9h3V6h2v3h4V6h2v3h3v11z"/><path d="M10 20v-4a2 2 0 0 1 4 0v4"/></symbol>
+            <symbol id="i-trophy" viewBox="0 0 24 24"><path d="M8 4h8v5a4 4 0 0 1-8 0V4z"/><path d="M8 6H4.5v1.5A3.5 3.5 0 0 0 8 11M16 6h3.5v1.5A3.5 3.5 0 0 1 16 11M12 13v4M8.5 20h7M10 17h4"/></symbol>
+            <symbol id="i-chart" viewBox="0 0 24 24"><path d="M4 20V11M10 20V4M16 20v-6M22 20H2"/></symbol>
+            <symbol id="i-bolt" viewBox="0 0 24 24"><path d="M13 2 4.5 13.5H11L10 22l9-12h-6.5L13 2z"/></symbol>
+            <symbol id="i-star" viewBox="0 0 24 24"><path d="m12 3.5 2.6 5.4 5.9.8-4.3 4.1 1 5.9L12 17l-5.2 2.7 1-5.9L3.5 9.7l5.9-.8L12 3.5z"/></symbol>
+            <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
+        </defs>
+    </svg>
+
+    <!-- ===== PREMIUM: экран загрузки ===== -->
+    <div class="ff-loader" id="ff-loader" aria-hidden="true">
+        <div class="ff-loader-core">
+            <div class="ff-loader-ring"><i></i><i></i></div>
+            <svg class="ff-loader-mark ni" viewBox="0 0 24 24"><use href="#i-bolt"/></svg>
+            <div class="ff-loader-title">DILENOW <span>SNS</span></div>
+            <div class="ff-loader-bar"><b></b></div>
+            <div class="ff-loader-sub">Загрузка данных…</div>
+        </div>
+    </div>
+    <div class="ff-progress" id="ff-progress" aria-hidden="true"><i></i></div>
+
+    <!-- ШАПКА -->
+    <header class="site-header">
+        <div class="brand" data-page="home" role="link" tabindex="0" title="На главную">
+            <span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 48 48"><path class="bm-hex" d="M24 3 42 13.5v21L24 45 6 34.5v-21z"/><path class="bm-bolt" d="M26.5 11 15 26h8l-2 11 12-16h-8.5L26.5 11z"/></svg></span>
+            <span class="brand-text">
+                <span class="brand-title">DILENOW SNS</span>
+                <span class="brand-subtitle">CYBERSPORTS PLATFORM</span>
+            </span>
+        </div>
+
+        <nav class="desktop-nav hide-mobile">
+            <button class="nav-btn active" data-page="home"><svg class="ni" aria-hidden="true"><use href="#i-home"/></svg><span class="nl">Главная</span></button>
+            <button class="nav-btn" data-page="alltime"><svg class="ni" aria-hidden="true"><use href="#i-crown"/></svg><span class="nl">За всё время</span></button>
+            <button class="nav-btn" data-page="month"><svg class="ni" aria-hidden="true"><use href="#i-cal"/></svg><span class="nl">За месяц</span></button>
+            <button class="nav-btn" data-page="search"><svg class="ni" aria-hidden="true"><use href="#i-search"/></svg><span class="nl">Поиск игроков</span></button>
+            <button class="nav-btn" data-page="streamers"><svg class="ni" aria-hidden="true"><use href="#i-tv"/></svg><span class="nl">Стримеры</span></button>
+            <button class="nav-btn" data-page="zaruby"><svg class="ni" aria-hidden="true"><use href="#i-swords"/></svg><span class="nl">Зарубы</span></button>
+            <button class="nav-btn" data-page="shop"><svg class="ni" aria-hidden="true"><use href="#i-cart"/></svg><span class="nl">Магазин</span></button>
+            <button class="nav-btn" data-page="profile"><svg class="ni" aria-hidden="true"><use href="#i-user"/></svg><span class="nl">Профиль</span><i class="nbadge" data-nb hidden>0</i></button>
+            <button class="nav-btn" data-page="rules"><svg class="ni" aria-hidden="true"><use href="#i-scroll"/></svg><span class="nl">Правила</span></button>
+            <button class="nav-btn" data-page="reports-public"><svg class="ni" aria-hidden="true"><use href="#i-shield"/></svg><span class="nl">Жалобы</span></button>
+            <button class="nav-btn" data-page="support"><svg class="ni" aria-hidden="true"><use href="#i-chat"/></svg><span class="nl">Поддержка</span></button>
+            <button class="nav-btn" data-page="bans"><svg class="ni" aria-hidden="true"><use href="#i-ban"/></svg><span class="nl">Бан-лист</span></button>
+        </nav>
+
+        <div class="ff-promo" aria-hidden="false">
+            <svg class="ff-promo-crown" viewBox="0 0 64 48" aria-hidden="true"><path d="M4 14l14 12L32 6l14 20 14-12-6 30H10L4 14z"/></svg>
+            <b>Будь в топе!</b>
+            <p>Следи за своей статистикой и развивайся вместе с нами!</p>
+            <button class="btn btn-sm" data-page="search">Начать поиск <svg class="ni" aria-hidden="true"><use href="#i-arrow"/></svg></button>
+        </div>
+
+        <button class="burger" id="burger" aria-label="Меню">☰</button>
+    </header>
+
+    <!-- ВЕРХНЯЯ ПАНЕЛЬ: поиск игроков, баланс, вход -->
+    <div class="ff-topbar" id="ff-topbar">
+        <form class="ff-search" id="ff-search-form" role="search" autocomplete="off">
+            <svg class="ni" aria-hidden="true"><use href="#i-search"/></svg>
+            <input id="ff-search" type="search" placeholder="Введите ник или @юзернейм игрока…" aria-label="Поиск игрока" enterkeyhint="search">
+            <button type="submit" aria-label="Найти"><svg class="ni" aria-hidden="true"><use href="#i-search"/></svg></button>
+        </form>
+        <div class="ff-actions" id="ff-actions"></div>
+        <button class="ff-login" id="ff-login" type="button" data-page="profile">
+            <svg class="ni" aria-hidden="true"><use href="#i-user"/></svg><span id="ff-login-t">Войти</span>
+        </button>
+    </div>
+
+    <!-- МОБИЛЬНОЕ МЕНЮ -->
+    <div class="mobile-menu" id="mobile-menu">
+        <button class="nav-btn" data-page="home"><svg class="ni" aria-hidden="true"><use href="#i-home"/></svg><span class="nl">Главная</span></button>
+        <button class="nav-btn" data-page="alltime"><svg class="ni" aria-hidden="true"><use href="#i-crown"/></svg><span class="nl">За всё время</span></button>
+        <button class="nav-btn" data-page="month"><svg class="ni" aria-hidden="true"><use href="#i-cal"/></svg><span class="nl">За месяц</span></button>
+        <button class="nav-btn" data-page="search"><svg class="ni" aria-hidden="true"><use href="#i-search"/></svg><span class="nl">Поиск игроков</span></button>
+        <button class="nav-btn" data-page="streamers"><svg class="ni" aria-hidden="true"><use href="#i-tv"/></svg><span class="nl">Стримеры</span></button>
+        <button class="nav-btn" data-page="zaruby"><svg class="ni" aria-hidden="true"><use href="#i-swords"/></svg><span class="nl">Зарубы</span></button>
+        <button class="nav-btn" data-page="shop"><svg class="ni" aria-hidden="true"><use href="#i-cart"/></svg><span class="nl">Магазин</span></button>
+        <button class="nav-btn" data-page="profile"><svg class="ni" aria-hidden="true"><use href="#i-user"/></svg><span class="nl">Профиль</span><i class="nbadge" data-nb hidden>0</i></button>
+        <button class="nav-btn" data-page="rules"><svg class="ni" aria-hidden="true"><use href="#i-scroll"/></svg><span class="nl">Правила</span></button>
+        <button class="nav-btn" data-page="reports-public"><svg class="ni" aria-hidden="true"><use href="#i-shield"/></svg><span class="nl">Жалобы</span></button>
+        <button class="nav-btn" data-page="support"><svg class="ni" aria-hidden="true"><use href="#i-chat"/></svg><span class="nl">Поддержка и группы</span></button>
+        <button class="nav-btn" data-page="bans"><svg class="ni" aria-hidden="true"><use href="#i-ban"/></svg><span class="nl">Бан-лист</span></button>
+    </div>
+
+    <main class="container">
+
+        <!-- ЗАЛ СЛАВЫ -->
+        <section class="hall-of-fame">
+            <div class="hof-left">
+                <span class="av-wrap big tier-diamond">
+                    <img id="top1-avatar" class="avatar-square" src="https://via.placeholder.com/120" alt="Топ-1">
+                    <i class="pt pt-0">💎</i><i class="pt pt-1">💎</i><i class="pt pt-2">💎</i><i class="pt pt-3">💎</i>
+                </span>
+                <div style="min-width:0">
+                    <div class="hof-label">👑 ДЕЙСТВУЮЩИЙ ТОП-1 СНГ</div>
+                    <div id="top1-player-name" class="hof-name">Загрузка лидера...</div>
+                </div>
+            </div>
+            <div id="top1-player-elo" class="badge-elo big">⚡ 0 ELO</div>
+        </section>
+
+        <!-- ГЛАВНАЯ -->
+        <section id="page-home" class="page active">
+          <div class="ff-home">
+            <div class="hero">
+                <i class="orb o1"></i><i class="orb o2"></i><i class="orb o3"></i>
+                <svg class="ff-hero-art" viewBox="0 0 400 400" aria-hidden="true">
+                    <defs>
+                        <radialGradient id="ffcore" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#ff4fd8" stop-opacity=".55"/><stop offset=".6" stop-color="#8f3dff" stop-opacity=".18"/><stop offset="1" stop-color="#8f3dff" stop-opacity="0"/></radialGradient>
+                    </defs>
+                    <circle cx="200" cy="200" r="190" fill="url(#ffcore)"/>
+                    <g class="ha-ring r1"><polygon points="200,28 349,114 349,286 200,372 51,286 51,114" fill="none" stroke="url(#ffg)" stroke-width="2.5" stroke-dasharray="14 10"/></g>
+                    <g class="ha-ring r2"><polygon points="200,68 314,134 314,266 200,332 86,266 86,134" fill="none" stroke="#b78cff" stroke-opacity=".55" stroke-width="1.5"/></g>
+                    <g class="ha-ring r3"><circle cx="200" cy="200" r="104" fill="none" stroke="#ff4fd8" stroke-opacity=".5" stroke-width="1.5" stroke-dasharray="3 12"/></g>
+                    <polygon points="200,112 276,156 276,244 200,288 124,244 124,156" fill="rgba(20,8,44,.85)" stroke="url(#ffg)" stroke-width="3"/>
+                    <path class="ha-bolt" d="M214 140 164 212h38l-12 56 56-82h-40l8-46z" fill="url(#ffg)"/>
+                </svg>
+                <span class="ff-tagline">Следи. Анализируй. Побеждай.</span>
+                <h1>Платформа <span class="accent">ELO</span> SNS Tracker</h1>
+                <p>Прокачивай киберспортивный профиль, поднимайся в рейтинге СНГ,следи за подписками, лайками и уведомлениями.</p>
+                <div class="hero-actions">
+                    <button class="btn" data-page="profile">🚀 Создать профиль</button>
+                    <button class="btn btn-ghost" data-page="alltime">📊 Смотреть рейтинг</button>
+                    <button class="btn btn-ghost" data-page="search">🔎 Найти игрока</button>
+                </div>
+            </div>
+
+            <!-- Топ игроков (данные берутся из рейтинга «За всё время») -->
+            <aside class="ff-widget ff-top" id="ff-top" aria-label="Топ игроков">
+                <div class="ff-w-head">
+                    <h3><svg class="ni" aria-hidden="true"><use href="#i-crown"/></svg>Топ игроков СНГ</h3>
+                    <span class="ff-live-dot" title="Обновляется в реальном времени">LIVE</span>
+                </div>
+                <ol class="ff-toplist" id="ff-toplist"><li class="ff-skel"></li><li class="ff-skel"></li><li class="ff-skel"></li><li class="ff-skel"></li><li class="ff-skel"></li></ol>
+                <button class="ff-more" data-page="alltime">Все топы <svg class="ni" aria-hidden="true"><use href="#i-arrow"/></svg></button>
+            </aside>
+
+            <div class="feature-grid">
+                <button class="feature" data-page="alltime"><span class="fi">🏆</span><b>Рейтинг игроков</b><span class="fd">ELO за всё время и за месяц, серии побед</span></button>
+                <button class="feature f2" data-page="shop"><span class="fi">🪙</span><b>Магазин</b><span class="fd">Рамки и анимированные эффекты за монеты</span></button>
+                <button class="feature f3" data-page="streamers"><span class="fi">📺</span><b>Стримеры</b><span class="fd">Кто в эфире — переходи прямо на YouTube</span></button>
+                <button class="feature f4" data-page="profile"><span class="fi">🎬</span><b>Видео и фото</b><span class="fd">Публикуй моменты в своём профиле</span></button>
+            </div>
+
+            <div class="live-strip" id="live-strip">
+                <h3>🔴 <span class="accent">Сейчас в эфире</span></h3>
+                <div id="live-strip-list"></div>
+            </div>
+
+            <div class="stat-grid">
+                <div class="stat-card"><span class="ff-ico"><svg class="ni" aria-hidden="true"><use href="#i-users"/></svg></span><div><div class="num" id="stat-players">0</div><div class="lbl">Игроков</div></div></div>
+                <div class="stat-card"><span class="ff-ico c2"><svg class="ni" aria-hidden="true"><use href="#i-film"/></svg></span><div><div class="num" id="stat-videos">0</div><div class="lbl">Публикаций</div></div></div>
+                <div class="stat-card"><span class="ff-ico c3"><svg class="ni" aria-hidden="true"><use href="#i-guild"/></svg></span><div><div class="num" id="ff-stat-guilds">0</div><div class="lbl">Гильдий</div></div></div>
+                <div class="stat-card"><span class="ff-ico c4"><svg class="ni" aria-hidden="true"><use href="#i-ban"/></svg></span><div><div class="num" id="stat-bans">0</div><div class="lbl">В бан-листе</div></div></div>
+            </div>
+
+            <!-- График: зарубы по дням (коллекция zaruby) -->
+            <section class="ff-widget ff-chart" id="ff-chart" aria-label="Статистика зарубов">
+                <div class="ff-w-head">
+                    <h3><svg class="ni" aria-hidden="true"><use href="#i-chart"/></svg>Активность зарубов</h3>
+                    <div class="ff-range" id="ff-range" role="tablist">
+                        <button class="on" data-r="7" role="tab">7 дней</button><button data-r="30" role="tab">30 дней</button><button data-r="90" role="tab">90 дней</button>
+                    </div>
+                </div>
+                <div class="ff-chart-body" id="ff-chart-body"></div>
+            </section>
+
+            <!-- Последние зарубы -->
+            <section class="ff-widget ff-recent" id="ff-recent" aria-label="Последние матчи">
+                <div class="ff-w-head">
+                    <h3><svg class="ni" aria-hidden="true"><use href="#i-swords"/></svg>Последние матчи</h3>
+                    <button class="ff-link" data-page="zaruby">Все матчи <svg class="ni" aria-hidden="true"><use href="#i-arrow"/></svg></button>
+                </div>
+                <div class="ff-matches" id="ff-matches"><div class="ff-skel-row"></div><div class="ff-skel-row"></div><div class="ff-skel-row"></div></div>
+            </section>
+
+            <!-- Битва месяца: таймер до сброса рейтинга + лидер месяца -->
+            <section class="ff-widget ff-arena" id="ff-arena" aria-label="Битва месяца">
+                <div class="ff-arena-trophy" aria-hidden="true"><svg class="ni" viewBox="0 0 24 24"><use href="#i-trophy"/></svg></div>
+                <div class="ff-arena-info">
+                    <div class="ff-w-head" style="margin-bottom:6px"><h3><svg class="ni" aria-hidden="true"><use href="#i-trophy"/></svg>Битва месяца</h3></div>
+                    <div class="ff-arena-title">Рейтинг месяца обнулится через</div>
+                    <div class="ff-arena-lead" id="ff-arena-lead">Лидер месяца определится после первых матчей</div>
+                </div>
+                <div class="ff-count" id="ff-count" role="timer" aria-live="off">
+                    <div><b id="ff-cd-d">0</b><span>дн.</span></div><div><b id="ff-cd-h">00</b><span>ч.</span></div><div><b id="ff-cd-m">00</b><span>мин.</span></div><div><b id="ff-cd-s">00</b><span>сек.</span></div>
+                </div>
+                <button class="btn btn-sm" data-page="month">Рейтинг месяца <svg class="ni" aria-hidden="true"><use href="#i-arrow"/></svg></button>
+            </section>
+
+            <!-- Достижения: ранги ТОП-5 -->
+            <section class="ff-widget ff-ach" id="ff-ach" aria-label="Достижения">
+                <div class="ff-w-head">
+                    <h3><svg class="ni" aria-hidden="true"><use href="#i-star"/></svg>Достижения</h3>
+                    <button class="ff-link" data-page="alltime">Все ранги <svg class="ni" aria-hidden="true"><use href="#i-arrow"/></svg></button>
+                </div>
+                <div class="ff-badges" id="ff-badges"></div>
+            </section>
+          </div>
+        </section>
+
+        <!-- ЗА ВСЁ ВРЕМЯ -->
+        <section id="page-alltime" class="page">
+            <div class="card">
+                <h3>👑 Общий рейтинг <span class="accent">за всё время</span></h3>
+                <div class="subtabs">
+                    <button class="on" data-sub="players">👤 Игроки</button>
+                    <button data-sub="guilds">🏰 Гильдии</button>
+                </div>
+                <p class="muted hint">ELO копится бесконечно: победа поднимает, поражение снижает. В рейтинге только те, кто уже играл. Нажми на игрока — откроется статистика и история матчей.</p>
+                <div class="sub on" data-sub="players"><div class="table-wrap"><table>
+                    <thead><tr><th>#</th><th>Игрок</th><th>Матчей</th><th>Победы</th><th>Поражения</th><th>ELO</th></tr></thead>
+                    <tbody id="all-players"><tr><td colspan="6" class="empty">Пока никто не играл</td></tr></tbody>
+                </table></div></div>
+                <div class="sub" data-sub="guilds"><div class="table-wrap"><table>
+                    <thead><tr><th>#</th><th>Гильдия</th><th>Матчей</th><th>Побед</th><th>Пораж.</th><th>Килы</th><th>HS</th></tr></thead>
+                    <tbody id="all-guilds"><tr><td colspan="7" class="empty">Гильдий пока нет</td></tr></tbody>
+                </table></div></div>
+            </div>
+        </section>
+
+        <!-- ЗА МЕСЯЦ -->
+        <section id="page-month" class="page">
+            <div class="card">
+                <h3>📅 Рейтинг <span class="accent">за месяц</span></h3>
+                <div class="subtabs">
+                    <button class="on" data-sub="players">👤 Игроки</button>
+                    <button data-sub="guilds">🏰 Гильдии</button>
+                </div>
+                <p class="muted hint" id="month-reset">…</p>
+                <div class="sub on" data-sub="players"><div class="table-wrap"><table>
+                    <thead><tr><th>#</th><th>Игрок</th><th>Победы</th><th>Килы</th><th>HS</th><th>ELO за месяц</th></tr></thead>
+                    <tbody id="month-players"><tr><td colspan="6" class="empty">В этом месяце матчей ещё нет</td></tr></tbody>
+                </table></div></div>
+                <div class="sub" data-sub="guilds"><div class="table-wrap"><table>
+                    <thead><tr><th>#</th><th>Гильдия</th><th>Матчей</th><th>Побед</th><th>Пораж.</th><th>Килы</th><th>HS</th></tr></thead>
+                    <tbody id="month-guilds"><tr><td colspan="7" class="empty">В этом месяце матчей ещё нет</td></tr></tbody>
+                </table></div></div>
+            </div>
+        </section>
+
+        <!-- ПОИСК ИГРОКОВ -->
+        <section id="page-search" class="page">
+            <div class="card">
+                <h3>🔎 Поиск <span class="accent">игроков</span></h3>
+                <input type="text" id="player-search" placeholder="Ник или @юзернейм..." autocomplete="off">
+                <p class="muted hint" id="search-hint">Топ игроков по ELO</p>
+                <div id="search-results"></div>
+            </div>
+        </section>
+
+        <!-- ПРОФИЛЬ ДРУГОГО ИГРОКА -->
+        <section id="page-user" class="page">
+            <button class="btn btn-ghost btn-sm" data-page="search" style="margin-bottom:14px">← К поиску</button>
+            <div class="card" id="user-box"><p class="empty">Загрузка…</p></div>
+        </section>
+
+        <!-- МОЙ ПРОФИЛЬ -->
+        <section id="page-profile" class="page">
+
+            <div id="profile-auth-box">
+                <div class="two-col">
+                    <div class="card">
+                        <h3>👤 Регистрация</h3>
+                        <p class="muted" style="margin-bottom:14px">Создай свойпрофиль.</p>
+                        <input type="text" id="p-display-name" placeholder="Имя профиля (например, Dilenow)">
+                        <input type="text" id="p-nickname" placeholder="Юзернейм (@username)" autocomplete="username">
+                        <input type="tel" id="p-phone-num" placeholder="Номер телефона">
+                        <input type="password" id="p-password" placeholder="Пароль (от 6 символов)" autocomplete="new-password">
+                        <label for="p-avatar-file">Квадратная аватарка</label>
+                        <input type="file" id="p-avatar-file" accept="image/*">
+                        <button class="btn-action" id="btn-register">🔥 Зарегистрироваться</button>
+                    </div>
+
+                    <div class="card">
+                        <h3>🔑 Вход в аккаунт</h3>
+                        <input type="text" id="login-nickname" placeholder="Ваш юзернейм (@username)" autocomplete="username">
+                        <input type="password" id="login-password" placeholder="Пароль" autocomplete="current-password">
+                        <button class="btn-action btn-green" id="btn-login">Войти</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card" id="profile-info-box" style="display:none">
+                <div class="profile-head">
+                    <span id="my-av-wrap"></span>
+                    <div style="min-width:0">
+                        <h2 id="my-profile-display-name">-</h2>
+                        <p id="my-profile-username" class="accent" style="font-weight:700">@username</p>
+                        <span id="my-streak"></span>
+                        <label class="upload-chip">
+                            📷 Сменить аватар
+                            <input type="file" id="change-avatar-file" accept="image/*">
+                        </label>
+                    </div>
+                </div>
+
+                <div class="profile-stats">
+                    <div class="profile-stat clickable" data-follow-list="following"><div class="n" id="my-stat-following">0</div><div class="l">ПОДПИСКИ</div></div>
+                    <div class="profile-stat clickable" data-follow-list="followers"><div class="n" id="my-stat-followers">0</div><div class="l">ПОДПИСЧИКИ</div></div>
+                    <div class="profile-stat"><div class="n" id="my-stat-likes" style="color:var(--pink)">0</div><div class="l">ЛАЙКИ</div></div>
+                    <div class="profile-stat"><div class="n" id="my-stat-elo" style="color:var(--cyan)">500</div><div class="l">ELO</div></div>
+                </div>
+
+                <div class="hero-actions" style="margin-bottom:18px">
+                    <button class="btn btn-sm" id="btn-my-stats">📊 Моя статистика</button>
+                    <button class="btn btn-ghost btn-sm" id="btn-my-public">👁 Как видят другие</button>
+                </div>
+
+                <div class="two-col">
+                    <div class="mini-box">
+                        <h4>👥 ПОДПИСКИ</h4>
+                        <div class="seg">
+                            <button class="on" data-flt="followers">Подписчики</button>
+                            <button data-flt="following">Я подписан</button>
+                        </div>
+                        <div id="follow-list" class="mini-list">Пока пусто</div>
+                    </div>
+                    <div class="mini-box">
+                        <h4>🔔 УВЕДОМЛЕНИЯ <button class="btn btn-ghost btn-sm" id="btn-clear-notif" style="float:right;padding:4px 10px">Очистить</button></h4>
+                        <div id="invites-list"></div>
+                        <div id="notifications-list" class="mini-list">Нет уведомлений</div>
+                    </div>
+                </div>
+
+                <hr class="divider">
+
+                <h3>📹 Мои <span class="accent">публикации</span></h3>
+                <label class="dropzone">
+                    <span class="dz-i">📤</span><b>Выбери или перетащи фото и видео</b>
+                    <span>До 6 файлов за раз · видео до 100 МБ · фото сожмутся автоматически</span>
+                    <input type="file" id="up-file" accept="video/*,image/*" multiple>
+                </label>
+                <div class="up-preview" id="up-preview"></div>
+                <input type="text" id="up-desc" placeholder="Подпись к публикации...">
+                <div class="progress" id="up-progress"><i></i></div>
+                <button class="btn-action" id="btn-upload">🎥 Опубликовать видео или фото</button>
+                <p class="muted hint" style="margin-top:8px">Твои публикации видят все, кто заходит в профиль. Удалить может только ты (и админ).</p>
+
+                <div id="my-media" class="media-grid"></div>
+
+                <button class="btn-action btn-red" id="btn-logout" style="margin-top:20px">🚪 Выйти</button>
+            </div>
+        </section>
+
+        <!-- СТРИМЕРЫ -->
+        <section id="page-streamers" class="page">
+            <div class="card">
+                <div class="sc-head">
+                    <h3 style="margin:0">📺 <span class="accent">Стримеры</span></h3>
+                    <span class="sc-count" id="streamers-count">Загрузка…</span>
+                </div>
+                <p class="muted hint" style="margin:-6px 0 14px">Алые — в эфире: нажми на карточку и сразу попадёшь на трансляцию. Фиолетовые сейчас оффлайн: откроется канал.</p>
+                <div id="streamers-list"><p class="empty">Стримеры ещё не добавлены.</p></div>
+                <hr class="divider">
+                <a class="btn btn-ghost btn-sm" href="streamer.html">Кабинет стримера →</a>
+            </div>
+        </section>
+
+        <!-- МАГАЗИН -->
+        <section id="page-shop" class="page">
+            <div class="card">
+                <div class="shop-top">
+                    <h3 style="margin:0">🛒 <span class="accent">Магазин</span></h3>
+                    <div class="shop-bal" id="shop-bal"></div>
+                </div>
+                <div class="shop-tabs">
+                    <button class="on" data-shop-tab="all">Всё</button>
+                    <button data-shop-tab="hw" class="hw-tab">🎃 Хэллоуин</button>
+                    <button data-shop-tab="banner">🏳 Баннеры</button>
+                    <button data-shop-tab="excl">💎 Эксклюзив</button>
+                    <button data-shop-tab="effect">✨ Эффекты</button>
+                    <button data-shop-tab="frame">🖼 Рамки</button>
+                    <button data-shop-tab="pframe">🪟 Рамки профиля</button>
+                    <button data-shop-tab="charm">🧷 Брелки</button>
+                    <button data-shop-tab="top">🏆 Награды ТОП</button>
+                    <button data-shop-tab="mine">🎒 Моё</button>
+                </div>
+                <div id="shop-body"></div>
+                <div class="shop-rules">
+                    <b>Как заработать монеты.</b> Монеты начисляются, когда администратор одобряет отчёт матча:
+                    <b>+10</b> за каждую победу, <b>+2</b> за каждый хедшот, <b>+5 / +10 / +15</b> за матчи «в плюсе» (чем больше побед относительно поражений, тем выше бонус), <b>+10</b> за эйс.
+                    Рамки окна профиля: обычные <b>1500</b>, анимированные <b>2500</b>, эксклюзивные <b>3500</b>, SUPER ELITE <b>50 000</b>. Цены: рамки <b>200</b>, анимированные эффекты <b>500</b>, обычные баннеры <b>200 / 300</b>, анимированные баннеры <b>500 / 700 / 800</b>, эксклюзивные <b>1500</b>, премиум баннеры и рамки <b>2000 / 2500</b>, брелки <b>600 / 800 / 1000</b>.
+                    Покупки видят все: на аватарке, баннер — в рейтингах «За всё время», «За месяц», в поиске игроков и в профиле. Баннеры и рамки влияют на уровень твоей гильдии (0–100): чем круче и анимированнее — тем больше опыта.
+                </div>
+            </div>
+        </section>
+
+        <!-- ЗАРУБЫ -->
+        <section id="page-zaruby" class="page">
+            <div class="card">
+                <div class="sc-head">
+                    <h3 style="margin:0">⚔ <span class="accent">Зарубы</span></h3>
+                    <span class="sc-count" id="zb-count"></span>
+                </div>
+                <p class="muted hint" style="margin:-6px 0 14px">Все матчи, где играли гильдии. Нажми на заруб — откроются состав, этапы, счёт и кто кого победил. Ссылка ведёт на YouTube стримера, который вёл матч.</p>
+                <input type="text" id="zb-search" placeholder="🔍 Гильдия, игрок или стример…" autocomplete="off">
+                <div class="subtabs" style="margin-top:4px">
+                    <button class="on" data-zbf="all">Все</button>
+                    
+                </div>
+                <div id="zb-list" class="zb-list"><p class="empty">Загрузка…</p></div>
+            </div>
+        </section>
+
+        <!-- ПРАВИЛА -->
+        <section id="page-rules" class="page">
+            <div class="card">
+                <div class="rules-head">
+                    <h3 style="margin:0">📜 <span class="accent">Правила</span></h3>
+                    <a class="btn btn-ghost btn-sm" id="rules-edit" href="admin.html#rules" style="display:none">✎ Редактировать</a>
+                </div>
+                <div class="rules-meta" id="rules-meta"></div>
+                <div class="rules-list" id="rules-body"></div>
+            </div>
+        </section>
+
+        <!-- ЖАЛОБЫ -->
+        <section id="page-reports-public" class="page">
+            <div class="card">
+                <h3>🛡️ <span class="accent">Жалоба</span></h3>
+                <p class="muted hint">Жалоба видна только администраторам. Нужно быть залогиненным.</p>
+                <input type="text" id="complaint-target" placeholder="Ник нарушителя">
+                <textarea id="complaint-text" rows="4" placeholder="Описание нарушения..."></textarea>
+                <label class="dropzone complaint-drop">
+                    <span class="dz-i">📎</span><b>Фото или видео-доказательства</b>
+                    <span>До 4 файлов · видео до 50 МБ · видят только администраторы</span>
+                    <input type="file" id="complaint-files" accept="image/*,video/*" multiple>
+                </label>
+                <div class="up-preview" id="complaint-file-list"></div>
+                <div class="progress" id="complaint-progress"><i></i></div>
+                <button class="btn-action" id="btn-complaint">🚀 Отправить жалобу</button>
+            </div>
+        </section>
+
+        <!-- ПОДДЕРЖКА -->
+        <section id="page-support" class="page">
+            <div class="card"><h3>🛠 <span class="accent">Тех-поддержка</span></h3><div id="support-box"></div></div>
+            <div class="card"><h3>👥 Наши <span class="accent">группы</span></h3><div id="groups-box"></div></div>
+        </section>
+
+        <!-- БАН-ЛИСТ -->
+        <section id="page-bans" class="page">
+            <div class="card">
+                <h3>🚫 <span class="accent">Чёрный список</span></h3>
+                <div class="table-wrap">
+                    <table style="min-width:420px">
+                        <thead><tr><th>Никнейм</th><th>Причина</th><th>Статус</th></tr></thead>
+                        <tbody id="banned-players-table">
+                            <tr><td colspan="3" class="empty">Банов нет.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- ПРОСМОТР КАК В TIKTOK -->
+    <div class="reels" id="reels">
+        <div class="reels-top">
+            <button id="reels-x" aria-label="Закрыть">✕</button>
+            <button id="reels-mute" aria-label="Звук">🔇</button>
+        </div>
+        <div class="reels-scroll" id="reels-scroll"></div>
+        <div class="sheet" id="reel-sheet">
+            <div class="sheet-head"><b>💬 Комментарии</b><button id="sheet-x">✕</button></div>
+            <div id="sheet-list"></div>
+            <div class="sheet-form">
+                <input type="text" id="sheet-input" placeholder="Написать комментарий..." maxlength="300">
+                <button class="btn btn-sm" id="sheet-send">➤</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ОКНО СТАТИСТИКИ / СПИСКОВ -->
+    <div class="modal" id="modal">
+        <div class="modal-card">
+            <button class="modal-x" id="modal-x" aria-label="Закрыть">✕</button>
+            <button class="modal-x modal-back" id="modal-back" hidden>←</button>
+            <div id="modal-body" class="modal-body-pad"></div>
+        </div>
+    </div>
+
+    <!-- НИЖНЯЯ ПАНЕЛЬ (телефон) -->
+    <nav class="bottom-nav" id="bottom-nav">
+        <button data-page="home" class="active"><svg class="ni" aria-hidden="true"><use href="#i-home"/></svg><span class="bl">Главная</span></button>
+        <button data-page="alltime"><svg class="ni" aria-hidden="true"><use href="#i-crown"/></svg><span class="bl">Рейтинг</span></button>
+        <button data-page="search"><svg class="ni" aria-hidden="true"><use href="#i-search"/></svg><span class="bl">Поиск</span></button>
+        <button data-page="profile"><svg class="ni" aria-hidden="true"><use href="#i-user"/></svg><span class="bl">Профиль</span><i class="nbadge" data-nb hidden>0</i></button>
+        <button id="bottom-more"><svg class="ni" aria-hidden="true"><use href="#i-menu"/></svg><span class="bl">Ещё</span></button>
+    </nav>
+
+    <script src="firebase-config.js"></script>
+    <script src="shop-data.js"></script>
+    <script src="pframes-data.js"></script>
+    <script src="pframes-elite.js"></script>
+    <script src="pframes-hw.js"></script>
+    <script src="pframes.js"></script>
+    <script src="app.js"></script>
+    <script src="social.js"></script>
+    <script src="extras.js"></script>
+    <script src="zaruby.js"></script>
+    <script src="halloween.js"></script>
+    <script src="fx.js"></script>
+    <script src="premium.js"></script>
+</body>
+</html>
