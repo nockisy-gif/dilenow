@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Free Fire — проверка файлов</title>
+<style>
+:root{--bg:#090909;--card:#191919;--field:#282828;--line:#333;--accent:#ff7900;--accent2:#ff8500;--text:#fff;--muted:#999;--ok:#4ade80;--warn:#ffad42;--bad:#ff6666}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:Arial,sans-serif;padding-bottom:40px}
+header{text-align:center;padding:25px 15px;background:#151515;border-bottom:2px solid var(--accent)}
+header h1{margin:0;color:var(--accent2);font-size:25px}
+header p{margin:6px 0 0;color:var(--muted);font-size:12px;letter-spacing:2px}
+main{max-width:640px;margin:auto;padding:15px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;margin-bottom:15px}
+h2{color:var(--accent2);font-size:19px;margin:0 0 12px}
+h3{font-size:14px;margin:0 0 6px}
+ul{margin:0;padding-left:18px;color:#ccc;font-size:13px;line-height:1.6}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:520px){.cols{grid-template-columns:1fr}}
+.check{display:flex;gap:10px;align-items:flex-start;margin-top:16px;padding:12px;background:var(--field);border-radius:9px;font-size:14px;cursor:pointer}
+.check input{margin-top:2px;width:18px;height:18px;flex:none}
+label.lbl{display:block;color:#bbb;font-size:13px;margin:14px 0 7px}
+input[type=text]{width:100%;padding:13px;background:var(--field);color:var(--text);border:1px solid #444;border-radius:9px;font-size:16px}
+.btn{display:block;width:100%;padding:14px;border:0;border-radius:9px;background:var(--accent);color:#111;font-weight:bold;font-size:15px;margin-top:12px;text-align:center;cursor:pointer}
+.btn.ghost{background:transparent;border:1px solid var(--accent);color:var(--accent2)}
+.btn[disabled],.btn.disabled{opacity:.4;pointer-events:none}
+.hint{color:var(--muted);font-size:12px;line-height:1.5;margin:10px 0 0}
+#prog{color:var(--warn);font-size:13px;margin-top:12px;min-height:18px}
+.verdict{padding:14px;border-radius:10px;font-size:14px;line-height:1.5;border:1px solid}
+.verdict.ok{border-color:var(--ok);color:var(--ok)}
+.verdict.warn{border-color:var(--warn);color:var(--warn)}
+.verdict.bad{border-color:var(--bad);color:var(--bad)}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px 0}
+.stat{background:var(--field);border-radius:9px;padding:10px;text-align:center}
+.stat b{display:block;font-size:20px;color:var(--accent2)}
+.stat span{font-size:11px;color:var(--muted)}
+.row{padding:10px 0;border-bottom:1px solid var(--line);font-size:13px;overflow-wrap:anywhere}
+.row .meta{color:var(--muted);font-size:12px;margin-top:3px}
+.badge{display:inline-block;padding:2px 7px;border-radius:6px;font-size:11px;font-weight:bold;margin-right:6px;color:#111}
+.badge.high{background:var(--bad)}.badge.medium{background:var(--warn)}.badge.low{background:#888}
+details{margin-top:12px}summary{cursor:pointer;color:var(--accent2);font-size:14px}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<header>
+  <h1>FREE FIRE</h1>
+  <p>ПРОВЕРКА ФАЙЛОВ НА ЧИТЫ</p>
+</header>
+
+<main>
+  <!-- 1. Согласие: без галочки ничего не запускается -->
+  <section class="card">
+    <h2>🔒 Что мы будем делать</h2>
+    <div class="cols">
+      <div>
+        <h3>✅ Делаем</h3>
+        <ul>
+          <li>Ты сам выбираешь одну папку (игры или эмулятора)</li>
+          <li>Смотрим только названия файлов и папок, размер и дату</li>
+          <li>Ищем в названиях слова, похожие на читы и инжекторы</li>
+          <li>Результат виден только тебе, на этой странице</li>
+        </ul>
+      </div>
+      <div>
+        <h3>🚫 Не делаем</h3>
+        <ul>
+          <li>Не открываем и не читаем содержимое файлов</li>
+          <li>Не заходим в другие папки без твоего выбора</li>
+          <li>Ничего не отправляем на сервер</li>
+          <li>Ничего не меняем, не удаляем и не устанавливаем</li>
+        </ul>
+      </div>
+    </div>
+    <label class="check">
+      <input type="checkbox" id="agree">
+      <span>Я понимаю, что будет проверена только выбранная мной папка, и разрешаю это</span>
+    </label>
+  </section>
+
+  <!-- 2. Данные игрока и запуск -->
+  <section class="card">
+    <h2>🔍 Проверка</h2>
+    <label class="lbl" for="nickname">Игровой никнейм (необязательно)</label>
+    <input type="text" id="nickname" maxlength="40" placeholder="Введите никнейм" autocomplete="off">
+    <label class="lbl" for="uid">UID (необязательно)</label>
+    <input type="text" id="uid" maxlength="20" inputmode="numeric" placeholder="Введите UID" autocomplete="off">
+
+    <button class="btn" id="pick" disabled>📁 Выбрать папку и проверить</button>
+    <label class="btn ghost disabled" id="fallbackLabel">
+      Другой способ (если кнопка выше не работает)
+      <input type="file" id="fallback" webkitdirectory multiple hidden>
+    </label>
+    <button class="btn ghost" id="cancel" hidden>Остановить</button>
+    <p class="hint">
+      Подойдёт папка игры или эмулятора на ПК (BlueStacks, LDPlayer, MSI и др.).
+      На телефонах Android 11+ система закрывает папку <code>Android/data</code> —
+      браузер её не увидит, это ограничение Android, а не ошибка сайта.
+      Браузер может спросить «загрузить файлы на сайт?» — на самом деле ничего не загружается,
+      это стандартный текст браузера.
+    </p>
+    <div id="prog" aria-live="polite"></div>
+  </section>
+
+  <!-- 3. Результат -->
+  <section class="card" id="resultCard" hidden>
+    <h2>📊 Результат</h2>
+    <div id="verdict" class="verdict"></div>
+    <div class="stats">
+      <div class="stat"><b id="sTotal">0</b><span>проверено</span></div>
+      <div class="stat"><b id="sFF">0</b><span>связано с FF</span></div>
+      <div class="stat"><b id="sHits">0</b><span>совпадений</span></div>
+    </div>
+    <div id="hits"></div>
+    <details id="ffBox" hidden>
+      <summary>Файлы, связанные с Free Fire</summary>
+      <div id="ffList"></div>
+    </details>
+    <button class="btn" id="copy">📋 Скопировать отчёт</button>
+    <button class="btn ghost" id="download">💾 Скачать отчёт (JSON)</button>
+    <p class="hint" id="disclaimer"></p>
+  </section>
+</main>
+
+<script>
+"use strict";
+
+/* ===== Настройки ===== */
+const MAX_ENTRIES = 50000;  // не больше стольких файлов/папок за раз
+const MAX_DEPTH   = 8;      // глубина вложенных папок
+
+// Что считаем «связанным с Free Fire» (только по названию)
+const FF_RE = /free[ _-]?fire|com\.dts\.|garena|(^|[^a-z0-9])ff[ _-]?max([^a-z0-9]|$)/i;
+
+// Правила поиска. Совпадение по названию — НЕ доказательство, а повод посмотреть вручную.
+// w('a|b') ищет слово целиком, чтобы «esp» не срабатывало внутри «respect».
+const w = s => new RegExp("(^|[^a-z0-9])(?:" + s + ")([^a-z0-9]|$)", "i");
+const RULES = [
+  { lvl: "high",   re: w("aim\\s?bot|aimlock|aim[ _-]?assist|aimkill|magic[ _-]?bullet"), why: "похоже на аимбот" },
+  { lvl: "high",   re: w("wall[ _-]?hack|esp|chams"),                                    why: "похоже на wallhack / ESP" },
+  { lvl: "high",   re: w("injector|inject|dll[ _-]?inject"),                             why: "похоже на инжектор" },
+  { lvl: "high",   re: w("mod[ _-]?menu|modmenu"),                                       why: "похоже на мод-меню" },
+  { lvl: "medium", re: w("hack|hacks|cheat|cheats|cheater"),                             why: "в названии «hack / cheat»" },
+  { lvl: "medium", re: w("lucky[ _-]?patcher|game[ _-]?guardian|gameguardian|cheat[ _-]?engine|xmodgames"), why: "программа для изменения игр" },
+  { lvl: "low",    re: w("mod|panel|bypass|spoof|hwid"),                                 why: "слово часто встречается у читов (само по себе мало что значит)" }
+];
+const LVL_ORDER = { high: 0, medium: 1, low: 2 };
+
+/* ===== Мелочи ===== */
+const $ = id => document.getElementById(id);
+// Всё, что берётся из названий файлов, выводится ТОЛЬКО через textContent — XSS невозможен.
+function el(tag, cls, text) {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (text != null) e.textContent = text;
+  return e;
+}
+const fmtSize = n => n == null ? "" : n < 1024 ? n + " Б" : n < 1048576 ? (n / 1024).toFixed(1) + " КБ" : (n / 1048576).toFixed(1) + " МБ";
+const fmtDate = t => t ? new Date(t).toLocaleDateString("ru") : "";
+const tick = () => new Promise(r => setTimeout(r));
+
+let cancelled = false;
+let lastReport = null;
+
+/* ===== Сбор списка файлов ===== */
+
+// Способ 1: showDirectoryPicker (Chrome / Edge на ПК). Читаем только имена, размер и дату.
+async function collectFromHandle(root, onProgress) {
+  const out = [];
+  let truncated = false;
+  async function walk(dir, prefix, depth) {
+    for await (const [name, h] of dir.entries()) {
+      if (cancelled) return;
+      if (out.length >= MAX_ENTRIES) { truncated = true; return; }
+      if (h.kind === "directory") {
+        out.push({ path: prefix + name + "/", dir: true });
+        if (depth < MAX_DEPTH) await walk(h, prefix + name + "/", depth + 1);
+        else truncated = true;
+      } else {
+        let size = null, mtime = null;
+        try { const f = await h.getFile(); size = f.size; mtime = f.lastModified; } catch (e) { /* нет доступа — пропускаем */ }
+        out.push({ path: prefix + name, size, mtime });
+      }
+      if (out.length % 200 === 0) { onProgress(out.length); await tick(); }
+    }
+  }
+  await walk(root, root.name + "/", 0);
+  return { rootName: root.name, entries: out, truncated };
+}
+
+// Способ 2: обычный <input webkitdirectory> — работает в большем числе браузеров.
+function collectFromFileList(files) {
+  const list = Array.from(files);
+  const truncated = list.length > MAX_ENTRIES;
+  const out = [];
+  const dirs = new Set();
+  for (const f of list.slice(0, MAX_ENTRIES)) {
+    const path = f.webkitRelativePath || f.name;
+    out.push({ path, size: f.size, mtime: f.lastModified });
+    const parts = path.split("/");
+    for (let i = 1; i < parts.length; i++) dirs.add(parts.slice(0, i).join("/") + "/");
+  }
+  dirs.forEach(d => out.push({ path: d, dir: true }));
+  const rootName = list.length && list[0].webkitRelativePath ? list[0].webkitRelativePath.split("/")[0] : "(выбранные файлы)";
+  return { rootName, entries: out, truncated };
+}
+
+/* ===== Анализ ===== */
+function lastSegment(path) {
+  const p = path.endsWith("/") ? path.slice(0, -1) : path;
+  return p.slice(p.lastIndexOf("/") + 1);
+}
+
+function analyze(data) {
+  const hits = [], ff = [];
+  for (const e of data.entries) {
+    if (FF_RE.test(e.path)) ff.push(e);
+    const name = lastSegment(e.path);          // проверяем только само название, не весь путь
+    const rule = RULES.find(r => r.re.test(name));
+    if (rule) hits.push({ ...e, lvl: rule.lvl, why: rule.why });
+  }
+  hits.sort((a, b) => LVL_ORDER[a.lvl] - LVL_ORDER[b.lvl] || a.path.localeCompare(b.path));
+  return { total: data.entries.length, ff, hits, rootName: data.rootName, truncated: data.truncated };
+}
+
+/* ===== Вывод ===== */
+function rowFor(e, withBadge) {
+  const r = el("div", "row");
+  if (withBadge) r.appendChild(el("span", "badge " + e.lvl, e.lvl === "high" ? "ВЫСОКИЙ" : e.lvl === "medium" ? "СРЕДНИЙ" : "НИЗКИЙ"));
+  r.appendChild(document.createTextNode(e.path));
+  const meta = [withBadge ? e.why : "", e.dir ? "папка" : fmtSize(e.size), fmtDate(e.mtime)].filter(Boolean).join(" · ");
+  if (meta) r.appendChild(el("div", "meta", meta));
+  return r;
+}
+
+function show(res) {
+  const high = res.hits.filter(h => h.lvl === "high").length;
+  const v = $("verdict");
+  if (high) { v.className = "verdict bad";  v.textContent = "Найдены названия с высоким приоритетом (" + high + "). Нужна ручная проверка этих файлов."; }
+  else if (res.hits.length) { v.className = "verdict warn"; v.textContent = "Есть слабые совпадения (" + res.hits.length + "). Скорее всего, ничего страшного, но стоит взглянуть."; }
+  else { v.className = "verdict ok"; v.textContent = "Подозрительных названий не найдено."; }
+
+  $("sTotal").textContent = res.total;
+  $("sFF").textContent = res.ff.length;
+  $("sHits").textContent = res.hits.length;
+
+  const hitsBox = $("hits");
+  hitsBox.replaceChildren(...res.hits.slice(0, 300).map(h => rowFor(h, true)));
+  if (res.hits.length > 300) hitsBox.appendChild(el("p", "hint", "Показаны первые 300 из " + res.hits.length + "."));
+
+  $("ffBox").hidden = !res.ff.length;
+  $("ffList").replaceChildren(...res.ff.slice(0, 200).map(f => rowFor(f, false)));
+
+  $("disclaimer").textContent =
+    "Проверка идёт только по названиям файлов в выбранной папке («" + res.rootName + "»). " +
+    "Это не доказательство ни вины, ни невиновности: у читов бывают безобидные имена, а у обычных файлов — похожие слова." +
+    (res.truncated ? " Папка очень большая — проверена только её часть." : "");
+
+  $("resultCard").hidden = false;
+  $("resultCard").scrollIntoView({ behavior: "smooth", block: "start" });
+
+  lastReport = {
+    createdAt: new Date().toISOString(),
+    nickname: $("nickname").value.trim(),
+    uid: $("uid").value.trim(),
+    folder: res.rootName,
+    totalChecked: res.total,
+    ffRelated: res.ff.length,
+    truncated: res.truncated,
+    matches: res.hits.map(h => ({ path: h.path, level: h.lvl, reason: h.why, size: h.size ?? null }))
+  };
+}
+
+function reportText(r) {
+  const lines = [
+    "Проверка файлов Free Fire",
+    "Дата: " + new Date(r.createdAt).toLocaleString("ru"),
+    "Ник: " + (r.nickname || "—") + " | UID: " + (r.uid || "—"),
+    "Папка: " + r.folder,
+    "Проверено: " + r.totalChecked + " | Связано с FF: " + r.ffRelated + " | Совпадений: " + r.matches.length,
+    ""
+  ];
+  r.matches.forEach(m => lines.push("[" + m.level + "] " + m.path + " — " + m.reason));
+  lines.push("", "Это проверка только по названиям, нужна ручная проверка.");
+  return lines.join("\n");
+}
+
+/* ===== Запуск ===== */
+function setBusy(b) {
+  $("pick").disabled = b || !$("agree").checked;
+  $("fallbackLabel").classList.toggle("disabled", b || !$("agree").checked);
+  $("cancel").hidden = !b;
+}
+
+async function run(getData) {
+  cancelled = false;
+  $("resultCard").hidden = true;
+  $("prog").textContent = "Проверяем…";
+  setBusy(true);
+  try {
+    const data = await getData(n => { $("prog").textContent = "Проверено: " + n; });
+    if (cancelled) { $("prog").textContent = "Остановлено."; return; }
+    show(analyze(data));
+    $("prog").textContent = "Готово.";
+  } catch (err) {
+    if (err && err.name === "AbortError") $("prog").textContent = "Выбор папки отменён.";
+    else $("prog").textContent = "Не получилось: " + (err && err.message ? err.message : err) + ". Попробуй «Другой способ».";
+  } finally {
+    setBusy(false);
+  }
+}
+
+$("agree").addEventListener("change", () => setBusy(false));
+
+$("pick").addEventListener("click", () => {
+  if (!window.showDirectoryPicker) {
+    $("prog").textContent = "Этот браузер не умеет выбирать папку так — используй «Другой способ».";
+    return;
+  }
+  run(async onProgress => {
+    const dir = await window.showDirectoryPicker({ mode: "read" });   // только чтение
+    return collectFromHandle(dir, onProgress);
+  });
+});
+
+$("fallback").addEventListener("change", e => {
+  const files = e.target.files;
+  if (!files || !files.length) return;
+  run(async () => collectFromFileList(files)).then(() => { e.target.value = ""; });
+});
+
+$("cancel").addEventListener("click", () => { cancelled = true; });
+
+$("copy").addEventListener("click", async () => {
+  if (!lastReport) return;
+  try { await navigator.clipboard.writeText(reportText(lastReport)); $("copy").textContent = "✅ Скопировано"; }
+  catch (e) { $("copy").textContent = "Не удалось скопировать — скачай JSON"; }
+  setTimeout(() => { $("copy").textContent = "📋 Скопировать отчёт"; }, 2000);
+});
+
+$("download").addEventListener("click", () => {
+  if (!lastReport) return;
+  const url = URL.createObjectURL(new Blob([JSON.stringify(lastReport, null, 2)], { type: "application/json" }));
+  const a = document.createElement("a");
+  a.href = url; a.download = "ff-check-report.json";
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+});
+</script>
+</body>
+</html>
