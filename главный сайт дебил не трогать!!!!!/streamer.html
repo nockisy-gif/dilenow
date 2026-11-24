@@ -391,10 +391,42 @@ span.pairs { display:inline-block; margin-top:4px; font:700 11px 'Inter',sans-se
 .prow.out { opacity:.55; }
 .lostb { margin-left:6px; padding:3px 9px; border-radius:8px; font:800 11px 'Inter',sans-serif; cursor:pointer; color:#ffb3c0; background:rgba(255,77,109,.10); border:1px solid rgba(255,77,109,.45); }
 .lostb.on { color:#fff; background:rgba(255,77,109,.40); }
+
+/* ---------- совместимость: TikTok LIVE Studio (старый встроенный браузер) ----------
+   Там не работает gap у flex-блоков — блоки слипались бы. Класс nofg ставит скрипт в начале <body>. */
+html.nofg .vs > * + * { margin-left:var(--g-vs,18px); }
+html.nofg .pc > .pi { margin-left:16px; }
+html.nofg .pc.r > .pi { margin-left:0; margin-right:16px; }
+html.nofg .gs > * + * { margin-left:var(--g-score,24px); }
+html.nofg .gstats > * + *, html.nofg .sm > * + * { margin-left:6px; }
+html.nofg .gmid > * + * { margin-top:8px; }
+html.nofg .gnums > * + * { margin-left:10px; }
+html.nofg .dots > * + * { margin-left:4px; }
+html.nofg .h2h > * + *, html.nofg .tmh > * + * { margin-left:14px; }
+html.nofg .stw > * + * { margin-left:var(--g-stats,16px); }
+.pc::after { top:0; right:0; bottom:0; left:0; }
 </style>
 <link rel="stylesheet" href="premium.css">
 </head>
 <body>
+<script>
+/* Самый первый скрипт страницы — специально на старом JS (ES5), чтобы работал в любом браузере,
+   в том числе во встроенном браузере TikTok LIVE Studio (источник «Ссылка»).
+   1) ссылка оверлея (?obs=…) сразу делает фон прозрачным и прячет кабинет — даже если дальше что-то не загрузится;
+   2) проверяем, умеет ли браузер gap у flex-блоков; если нет — CSS выше расставит отступы сам. */
+(function () {
+    try {
+        if (/[?&]obs=/.test(location.search)) document.body.className += ' overlay';
+        var f = document.createElement('div');
+        f.style.cssText = 'display:flex;flex-direction:column;row-gap:1px;position:absolute;visibility:hidden';
+        f.appendChild(document.createElement('div'));
+        f.appendChild(document.createElement('div'));
+        document.body.appendChild(f);
+        if (f.scrollHeight !== 1) document.documentElement.className += ' nofg';
+        document.body.removeChild(f);
+    } catch (e) {}
+})();
+</script>
 
 <!-- Оверлей для OBS -->
 <div id="overlay" data-visible="0"></div>
@@ -576,7 +608,7 @@ span.pairs { display:inline-block; margin-top:4px; font:700 11px 'Inter',sans-se
             </div>
 
             <div class="card">
-                <h3>🔗 Ссылки для OBS</h3>
+                <h3>🔗 Ссылки для OBS и TikTok LIVE Studio</h3>
                 <label class="lb">VS карточки</label>
                 <div class="urlrow"><input type="text" id="url-vs" readonly><button class="btn ghost sm" data-copy="url-vs">📋</button></div>
                 <label class="lb">Табло счёта</label>
@@ -588,7 +620,8 @@ span.pairs { display:inline-block; margin-top:4px; font:700 11px 'Inter',sans-se
                 <label class="lb">Статистика — только правая</label>
                 <div class="urlrow"><input type="text" id="url-stats-r" readonly><button class="btn ghost sm" data-copy="url-stats-r">📋</button></div>
                 <div class="tip">
-                    <b>Как подключить:</b> OBS → Источники → ＋ → «Браузер» → вставь ссылку. Фон прозрачный.
+                    <b>Как подключить:</b> OBS → Источники → ＋ → «Браузер» → вставь ссылку. Фон прозрачный.<br>
+                    <b>TikTok LIVE Studio:</b> «Добавить источник» → «Ссылка» (Link) → вставь ссылку целиком → обязательно задай ширину и высоту из списка ниже (без размеров источник бывает пустым). Входить в кабинет в самом источнике не нужно. Если оверлей завис — удали источник и добавь заново.<br>
                     Размеры: <b>1100×210</b> VS · <b>1100×230</b> счёт · <b>800×420</b> статистика (обе) · <b>420×420</b> статистика (одна команда). Все плашки фиксированного размера: длинный ник, гильдия или счёт их не растягивают.<br>
                     Меняй данные в кабинете — оверлей обновится сам за 1–2 секунды. У каждого стримера свои ссылки.
                 </div>
@@ -641,7 +674,8 @@ const guildKey = name => String(name || '').trim().toLowerCase().replace(/[^\p{L
 <script>
 
 const $ = id => document.getElementById(id);
-const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const nz = (v, d) => (v === null || v === undefined ? d : v); // замена «??» — его не понимает браузер TikTok LIVE Studio
+const esc = v => String(nz(v, '')).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fmtText = f => String(f || '6x6').replace('x', '×');
 const num = v => Math.max(0, Number(v) || 0);
 const sumBy = (list, f) => (list || []).reduce((a, p) => a + num(p[f]), 0);
@@ -668,7 +702,7 @@ function pdata(pid) {
     if (!PSUBS.has(pid)) {
         PSUBS.add(pid);
         db.collection('players').doc(pid).onSnapshot(d => {
-            if (d.exists) { const x = d.data(); PCACHE.set(pid, { avatar: validAv(x.avatarUrl), equipped: x.equipped || {}, elo: x.elo ?? null, games: Number(x.totalGames) || 0, streak: Number(x.streak) || 0 }); }
+            if (d.exists) { const x = d.data(); PCACHE.set(pid, { avatar: validAv(x.avatarUrl), equipped: x.equipped || {}, elo: nz(x.elo, null), games: Number(x.totalGames) || 0, streak: Number(x.streak) || 0 }); }
             onPlayerData();
         }, () => {});
     }
@@ -868,7 +902,13 @@ if (obsMode) {
             else renderScore(root, last.score, last.teams);
         };
         onPlayerData = () => { clearTimeout(t); t = setTimeout(() => { root._k = null; root._sk = null; draw(); }, 120); };
-        db.collection('live_match').doc(user).onSnapshot(doc => { last = doc.exists ? doc.data() : {}; draw(); });
+        // при ошибке связи переподписываемся сами: в TikTok LIVE Studio у источника «Ссылка» нет кнопки «Обновить»
+        const listen = () => {
+            const off = db.collection('live_match').doc(user).onSnapshot(
+                doc => { last = doc.exists ? doc.data() : {}; draw(); },
+                e => { console.warn('[overlay]', e); try { off(); } catch (_) {} setTimeout(listen, 5000); });
+        };
+        listen();
     }
 } else {
     initCabinet();
@@ -1039,7 +1079,7 @@ function initCabinet() {
         const x = d.data();
         const av = x.avatarUrl && !String(x.avatarUrl).startsWith('blob:') && !String(x.avatarUrl).includes('placeholder.com') ? x.avatarUrl : '';
         return { id: d.id, uid: x.uid || null, name: x.displayName || x.username || d.id, guild: x.guild && x.guild !== '-' ? x.guild : '', avatar: av,
-            elo: x.elo ?? null, games: Number(x.totalGames) || 0, wins: Number(x.totalWins ?? x.seasonWins) || 0, losses: Number(x.totalLosses) || 0,
+            elo: nz(x.elo, null), games: Number(x.totalGames) || 0, wins: Number(nz(x.totalWins, x.seasonWins)) || 0, losses: Number(x.totalLosses) || 0,
             kills: Number(x.totalKills) || 0, banned: !!x.banned, rank: null, mrank: null, streak: Number(x.streak) || 0,
             mOk: x.monthKey === periodKey() && (Number(x.mGames) || 0) > 0, mElo: Number(x.mElo) || 0, mWins: Number(x.mWins) || 0, mKills: Number(x.mKills) || 0 };
     };
@@ -1054,8 +1094,8 @@ function initCabinet() {
         players.forEach(p => { p.mrank = null; });
         players.filter(p => !p.banned && p.mOk).sort((a, b) => (b.mElo - a.mElo) || (b.mWins - a.mWins) || (b.mKills - a.mKills)).forEach((p, i) => { p.mrank = i + 1; });
     }
-    const stOf = p => p ? { elo: p.elo ?? 0, games: p.games, wins: p.wins, losses: p.losses, rank: p.rank || null, total: rankTotal, mrank: p.mrank || null, streak: p.streak || 0 } : null;
-    const sameSt = (a, b) => !a && !b || (a && b && ['elo', 'games', 'wins', 'losses', 'rank', 'total', 'mrank', 'streak'].every(k => (a[k] ?? null) === (b[k] ?? null)));
+    const stOf = p => p ? { elo: nz(p.elo, 0), games: p.games, wins: p.wins, losses: p.losses, rank: p.rank || null, total: rankTotal, mrank: p.mrank || null, streak: p.streak || 0 } : null;
+    const sameSt = (a, b) => !a && !b || (a && b && ['elo', 'games', 'wins', 'losses', 'rank', 'total', 'mrank', 'streak'].every(k => nz(a[k], null) === nz(b[k], null)));
     // карточки VS на стриме обновляются сами, когда у игрока меняется рейтинг / ELO / число матчей
     function enrichVs() {
         const ch = {};
@@ -1063,7 +1103,7 @@ function initCabinet() {
             const v = state.vs[side]; if (!v || !v.pid) return;
             const p = players.find(x => x.id === v.pid); if (!p) return;
             const st = stOf(p);
-            if (!sameSt(st, v.st)) { v.st = st; v.elo = p.elo ?? null; ch[side] = v; }
+            if (!sameSt(st, v.st)) { v.st = st; v.elo = nz(p.elo, null); ch[side] = v; }
         });
         if (Object.keys(ch).length) { save({ vs: ch }); refreshAll(); }
     }
@@ -1299,7 +1339,7 @@ function initCabinet() {
         if (!q) { box.innerHTML = ''; return; }
         const p = players.find(x => x.name.toLowerCase() === q.toLowerCase());
         box.innerHTML = !p ? `«${esc(q)}» не найден на сайте — будет ГОСТЬ без рейтинга`
-            : p.games ? `<b>${esc(p.name)}</b> · место в рейтинге <b>#${p.rank || '—'}</b> из ${rankTotal} · матчей <b>${p.games}</b> · ELO <b>${p.elo ?? 0}</b>`
+            : p.games ? `<b>${esc(p.name)}</b> · место в рейтинге <b>#${p.rank || '—'}</b> из ${rankTotal} · матчей <b>${p.games}</b> · ELO <b>${nz(p.elo, 0)}</b>`
             : `<b>${esc(p.name)}</b> — новичок: <b>0</b> матчей, в рейтинг ещё не попал`;
     }
     // игроки состава одним нажатием — чтобы не искать вручную
@@ -1388,7 +1428,7 @@ function initCabinet() {
             guild: $(side + '-guild').value.trim(),
             pid: (base.id && base.id !== 'new' && base.id !== 'x') ? base.id : null,
             avatar: base.avatar || '',
-            elo: base.elo ?? null,
+            elo: nz(base.elo, null),
             st: (base.id && base.id !== 'new' && base.id !== 'x' && players.some(x => x.id === base.id)) ? stOf(players.find(x => x.id === base.id)) : null
         };
         state.vs[side] = data;
